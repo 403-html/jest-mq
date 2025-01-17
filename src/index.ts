@@ -1,1 +1,1 @@
-console.log("Hello, this will be jest-mq!")
+export { MessageQueue } from "./core/queue";
