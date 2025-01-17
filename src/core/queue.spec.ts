@@ -52,7 +52,6 @@ describe("MessageQueue", () => {
     queue.sendMessage(message1);
 
     const receivedMessage1 = queue.receiveMessage();
-    const receivedMessage2 = queue.receiveMessage();
 
     expect(receivedMessage1).toEqual({ ...message1, id: expect.any(Number) });
 
