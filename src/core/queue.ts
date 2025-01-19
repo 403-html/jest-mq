@@ -1,5 +1,7 @@
-type Message<T = any> = { type: string | undefined; id: number } & T;
-type MessageHandler<T = any> = (message: Message<T>) => Promise<void> | void;
+export type Message<T = any> = { type: string | undefined; id: number } & T;
+export type MessageHandler<T = any> = (
+  message: Message<T>,
+) => Promise<void> | void;
 
 export class MessageQueue<T = any> {
   private sentMessages: Message<T>[] = [];
