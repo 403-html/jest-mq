@@ -1,6 +1,6 @@
 {
   "name": "jest-mq",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A Jest framework for testing message queues like RabbitMQ and Kafka.",
   "main": "src/index.ts",
   "scripts": {
