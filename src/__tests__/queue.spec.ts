@@ -1,4 +1,4 @@
-import { MessageQueue } from "./queue";
+import { MessageQueue } from "../core/queue";
 
 describe("MessageQueue", () => {
   let queue: MessageQueue;

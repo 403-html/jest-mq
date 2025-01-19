@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "module": "nodenext"
+    "module": "nodenext",
+    "esModuleInterop": true,
+    "outDir": "./dist"
   },
   "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "src/**/*.spec.ts"]
 } 

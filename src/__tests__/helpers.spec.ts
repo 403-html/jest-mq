@@ -1,5 +1,5 @@
-import { expectMessage } from "./helpers";
-import { MessageQueue, Message } from "./queue";
+import { expectMessage } from "../core/helpers";
+import { MessageQueue, Message } from "../core/queue";
 
 describe("expectMessage", () => {
   let queue: MessageQueue<any>;
