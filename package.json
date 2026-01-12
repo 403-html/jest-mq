@@ -6,7 +6,11 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "jest --config jest.config.js --coverage",
-    "build": "tsc"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "format:write": "prettier --write \"src/**/*.ts\"",
+    "quality": "npm run format:check && npm run typecheck && npm test"
   },
   "keywords": [
     "jest",
