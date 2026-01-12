@@ -1,12 +1,16 @@
 {
   "name": "jest-mq",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A Jest framework for testing message queues like RabbitMQ and Kafka.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "jest --config jest.config.js --coverage",
-    "build": "tsc"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "format:write": "prettier --write \"src/**/*.ts\"",
+    "quality": "npm run format:check && npm run typecheck && npm test"
   },
   "keywords": [
     "jest",

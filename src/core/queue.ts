@@ -8,6 +8,8 @@ export class MessageQueue<T = any> {
   private receivedMessages: Message<T>[] = [];
   private handlers: Map<string | undefined, MessageHandler<T>[]> = new Map();
   private messageCount: number = 0;
+  private pendingHandlers: Set<Promise<void>> = new Set();
+  private handlerErrors: Error[] = [];
 
   constructor(public name: string) {
     if (!name) {
@@ -40,6 +42,8 @@ export class MessageQueue<T = any> {
     this.receivedMessages = [];
     this.handlers.clear();
     this.messageCount = 0;
+    this.pendingHandlers.clear();
+    this.handlerErrors = [];
   }
 
   private async processHandlers(messageWithId: Message<T>): Promise<void> {
@@ -48,7 +52,20 @@ export class MessageQueue<T = any> {
       ...(this.handlers.get(undefined) || []),
     ];
 
-    await Promise.all(handlers.map((handler) => handler(messageWithId)));
+    const processing = Promise.all(
+      handlers.map((handler) =>
+        Promise.resolve()
+          .then(() => handler(messageWithId))
+          .catch((error) => {
+            this.handlerErrors.push(
+              error instanceof Error ? error : new Error(String(error)),
+            );
+          }),
+      ),
+    ).then(() => undefined);
+
+    this.pendingHandlers.add(processing);
+    processing.finally(() => this.pendingHandlers.delete(processing));
   }
 
   sendMessage(message: T): number {
@@ -58,7 +75,7 @@ export class MessageQueue<T = any> {
       id: this.messageCount++,
     };
     this.sentMessages.push(messageWithId);
-    this.processHandlers(messageWithId);
+    void this.processHandlers(messageWithId);
     return messageWithId.id;
   }
 
@@ -102,6 +119,15 @@ export class MessageQueue<T = any> {
         messageType,
         handlersForType.filter((h) => h !== handler),
       );
+    }
+  }
+
+  async flush(): Promise<void> {
+    await Promise.all(Array.from(this.pendingHandlers));
+    if (this.handlerErrors.length > 0) {
+      const errors = this.handlerErrors;
+      this.handlerErrors = [];
+      throw new AggregateError(errors, "One or more message handlers failed");
     }
   }
 }
