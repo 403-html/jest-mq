@@ -87,8 +87,7 @@ describe("MessageQueue", () => {
     const message = { type: "orderCreated", orderId: 123 };
     queue.sendMessage(message);
 
-    // wait for the handlers to be processed
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await queue.flush();
 
     expect(handler1).toHaveBeenCalledWith(
       expect.objectContaining({ ...message, id: expect.any(Number) }),
@@ -105,6 +104,8 @@ describe("MessageQueue", () => {
     const message = { type: "anyType", data: "some data" };
     queue.sendMessage(message);
 
+    await queue.flush();
+
     expect(defaultHandler).toHaveBeenCalledWith({
       ...message,
       id: expect.any(Number),
@@ -120,7 +121,7 @@ describe("MessageQueue", () => {
     queue.onMessage("asyncMessage", asyncHandler);
     queue.sendMessage({ type: "asyncMessage" });
 
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await queue.flush();
     expect(asyncHandler).toHaveBeenCalled();
   });
 
@@ -133,7 +134,7 @@ describe("MessageQueue", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it("onMessage return should remove the handler (specific type)", () => {
+  it("onMessage return should remove the handler (specific type)", async () => {
     const handler = jest.fn();
     const unsubscribe = queue.onMessage("orderCreated", handler);
 
@@ -144,10 +145,12 @@ describe("MessageQueue", () => {
 
     queue.sendMessage(message);
 
+    await queue.flush();
+
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it("onMessage return should remove the handler (default type)", () => {
+  it("onMessage return should remove the handler (default type)", async () => {
     const handler = jest.fn();
     const unsubscribe = queue.onMessage(undefined, handler);
 
@@ -158,10 +161,12 @@ describe("MessageQueue", () => {
 
     queue.sendMessage(message);
 
+    await queue.flush();
+
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it("onMessage return should handle multiple handlers for the same type", () => {
+  it("onMessage return should handle multiple handlers for the same type", async () => {
     const handler1 = jest.fn();
     const handler2 = jest.fn();
 
@@ -173,6 +178,8 @@ describe("MessageQueue", () => {
 
     unsubscribe1();
     queue.sendMessage(message);
+
+    await queue.flush();
 
     expect(handler1).toHaveBeenCalledTimes(1);
     expect(handler2).toHaveBeenCalledTimes(2);
@@ -189,5 +196,24 @@ describe("MessageQueue", () => {
     queue.sendMessage(message);
 
     expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("flush should surface handler errors", async () => {
+    const handler = jest.fn(() => {
+      throw new Error("handler failed");
+    });
+
+    queue.onMessage("errorEvent", handler);
+    queue.sendMessage({ type: "errorEvent" });
+
+    try {
+      await queue.flush();
+      throw new Error("Expected flush to throw");
+    } catch (error) {
+      const aggregate = error as AggregateError;
+      expect(aggregate.message).toBe("One or more message handlers failed");
+      expect(aggregate.errors[0]).toBeInstanceOf(Error);
+      expect((aggregate.errors[0] as Error).message).toBe("handler failed");
+    }
   });
 });
