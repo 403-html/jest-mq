@@ -1,8 +1,8 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`toHaveEmptyQueue should fail if queue is not empty 1`] = `
 "[2mexpect([22m[31mreceived[39m[2m).toHaveEmptyQueue()[22m
       
       Expected queue to be empty, but it contains:
-        [31m[{\\"id\\": 0, \\"payload\\": \\"test\\", \\"type\\": \\"test\\"}][39m"
+        [31m[{"id": 0, "payload": "test", "type": "test"}][39m"
 `;

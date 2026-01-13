@@ -2,7 +2,7 @@
 
 ![npm](https://img.shields.io/npm/v/jest-mq)
 ![ci](https://img.shields.io/github/actions/workflow/status/403-html/jest-mq/ci.yml?branch=main)
-![node](https://img.shields.io/badge/node-20+-green)
+![node](https://img.shields.io/badge/node-24.12%2B-green)
 
 Utilities and matchers for testing message queue interactions in Jest. Fully compatible with Jest's expect API, `jest-mq` simplifies testing of message publishing, message consumption, and message routing without needing a broker.
 

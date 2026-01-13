@@ -21,23 +21,23 @@ describe("MessageQueue", () => {
     });
 
     it("should throw an error if no name is provided", () => {
-      expect(() => new MessageQueue("")).toThrowError("Queue name is required");
+      expect(() => new MessageQueue("")).toThrow("Queue name is required");
     });
 
     it("should throw an error if the name is too long", () => {
-      expect(() => new MessageQueue("a".repeat(256))).toThrowError(
+      expect(() => new MessageQueue("a".repeat(256))).toThrow(
         "Queue name is too long",
       );
     });
 
     it("should throw an error if the name contains spaces", () => {
-      expect(() => new MessageQueue("test queue")).toThrowError(
+      expect(() => new MessageQueue("test queue")).toThrow(
         "Queue name cannot contain spaces",
       );
     });
 
     it("should throw an error if the name is not a string", () => {
-      expect(() => new MessageQueue(null as unknown as string)).toThrowError(
+      expect(() => new MessageQueue(null as unknown as string)).toThrow(
         "Queue name is required",
       );
     });
