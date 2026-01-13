@@ -1,6 +1,6 @@
 {
   "name": "jest-mq",
-  "version": "0.0.4",
+  "version": "1.0.0",
   "description": "A Jest framework for testing message queues like RabbitMQ and Kafka.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,22 +10,52 @@
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "format:write": "prettier --write \"src/**/*.ts\"",
-    "quality": "npm run format:check && npm run typecheck && npm test"
+    "quality": "npm run format:check && npm run typecheck && npm test",
+    "prepublishOnly": "npm run build && npm test",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./matchers": {
+      "types": "./dist/matchers/index.d.ts",
+      "default": "./dist/matchers/index.js"
+    }
   },
   "keywords": [
     "jest",
+    "jest-matchers",
     "mq",
+    "queue",
+    "message-queue",
     "rabbitmq",
     "kafka",
-    "testing"
+    "test",
+    "testing",
+    "mock",
+    "stub"
   ],
+  "bugs": {
+    "url": "https://github.com/403-html/jest-mq/issues"
+  },
+  "homepage": "https://github.com/403-html/jest-mq#readme",
+  "engines": {
+    "node": ">=20"
+  },
   "license": "MIT",
   "dependencies": {
-    "amqplib": "^0.8.0",
     "jest-matcher-utils": "^29.7.0"
   },
   "devDependencies": {
-    "@types/amqplib": "^0.10.6",
     "@types/jest": "^27.5.2",
     "@types/node": "^22.10.7",
     "jest": "^27.0.0",

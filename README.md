@@ -1,11 +1,10 @@
 # jest-mq
 
-![status](https://img.shields.io/badge/status-development-blue)
-![node](https://img.shields.io/badge/node-v23.6.0-red)
+![npm](https://img.shields.io/npm/v/jest-mq)
+![ci](https://img.shields.io/github/actions/workflow/status/403-html/jest-mq/ci.yml?branch=main)
+![node](https://img.shields.io/badge/node-20+-green)
 
-> Don't use this library yet. It's still in development. Check back later for a stable release.
-
-This library provides utilities and matchers to facilitate the testing of message queue interactions in your applications. Fully compatible with Jest's expect API, `jest-mq` simplifies the testing of message publishing, message consumption, and message routing without need of a broker.
+Utilities and matchers for testing message queue interactions in Jest. Fully compatible with Jest's expect API, `jest-mq` simplifies testing of message publishing, message consumption, and message routing without needing a broker.
 
 ## Installation
 
@@ -52,6 +51,7 @@ export const registerOrderConsumer = (broker: Broker<OrderCreated>) =>
 
 ```ts
 // app/order/order.test.ts
+import "jest-mq/matchers"; // or import in jest setup
 import { MessageQueue } from "jest-mq";
 import { publishOrder, type OrderCreated } from "./order";
 
