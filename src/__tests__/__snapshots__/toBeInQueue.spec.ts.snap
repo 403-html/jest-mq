@@ -1,10 +1,10 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`toBeInQueue should fail if message is not in queue 1`] = `
-"[2mexpect([22m[31mreceived[39m[2m).toBeInQueue([22m[32mexpectedMessage[39m[2m)[22m
+"expect(received).toBeInQueue(expectedMessage)
       
       Expected message to be in queue:
-        [31m{\\"payload\\": \\"test\\", \\"type\\": \\"test\\"}[39m
+        {"payload": "test", "type": "test"}
       Received:
-        [32m[][39m"
+        []"
 `;

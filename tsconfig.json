@@ -3,6 +3,8 @@
     "target": "esnext",
     "module": "nodenext",
     "esModuleInterop": true,
+    "lib": ["esnext"],
+    "isolatedModules": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "declaration": true
