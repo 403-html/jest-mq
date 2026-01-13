@@ -17,14 +17,14 @@ describe("toHaveEmptyQueue", () => {
   });
 
   it("should fail if queue is not empty", () => {
-    queue.sendMessage({ type: "test", payload: "test" });
+    queue.publish({ type: "test", payload: "test" });
     expect(() =>
       expect(queue).toHaveEmptyQueue(),
     ).toThrowErrorMatchingSnapshot();
   });
 
   it("should send, receive, and check if queue is empty", () => {
-    queue.sendMessage({ type: "test", payload: "test" });
+    queue.publish({ type: "test", payload: "test" });
     expect(queue).not.toHaveEmptyQueue();
     queue.receiveMessage();
     expect(queue).toHaveEmptyQueue();
