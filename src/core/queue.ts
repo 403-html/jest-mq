@@ -68,7 +68,7 @@ export class MessageQueue<T = any> {
     processing.finally(() => this.pendingHandlers.delete(processing));
   }
 
-  sendMessage(message: T): number {
+  publish(message: T): number {
     const messageWithId: Message<T> = {
       ...message,
       type: (message as any).type,
@@ -97,7 +97,18 @@ export class MessageQueue<T = any> {
     return message;
   }
 
-  onMessage(
+  ack(message: Message<T>): void {
+    const messageIndex = this.sentMessages.findIndex(
+      (m) => m.id === message.id,
+    );
+    if (messageIndex === -1) {
+      return;
+    }
+    const [ackedMessage] = this.sentMessages.splice(messageIndex, 1);
+    this.receivedMessages.push(ackedMessage);
+  }
+
+  subscribe(
     messageType: string | undefined,
     handler: MessageHandler<T>,
   ): () => void {
@@ -109,7 +120,7 @@ export class MessageQueue<T = any> {
     return () => this.offMessage(messageType, handler);
   }
 
-  offMessage(
+  private offMessage(
     messageType: string | undefined,
     handler: MessageHandler<T>,
   ): void {

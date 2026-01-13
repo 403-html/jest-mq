@@ -14,7 +14,7 @@ describe("toBeInQueue", () => {
 
   it("should pass if message is in queue", () => {
     const message = { type: "test", payload: "test" };
-    queue.sendMessage(message);
+    queue.publish(message);
     expect(queue).toBeInQueue(message);
   });
 
