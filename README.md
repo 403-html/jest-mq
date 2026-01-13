@@ -7,6 +7,19 @@
 
 This library provides utilities and matchers to facilitate the testing of message queue interactions in your applications. Fully compatible with Jest's expect API, `jest-mq` simplifies the testing of message publishing, message consumption, and message routing without need of a broker.
 
+## Installation
+
+```sh
+npm install --save-dev jest-mq
+```
+
+## Usage
+
+```ts
+// jest.setup.ts
+import "jest-mq/matchers";
+```
+
 ## How it fits together
 
 Production code uses your real broker clients directly. Tests replace that wiring with `jest-mq`. If you keep a tiny broker interface in your app (recommended anyway), `MessageQueue` can satisfy it without your production app ever importing `jest-mq` or any other testing tool.
@@ -39,7 +52,6 @@ export const registerOrderConsumer = (broker: Broker<OrderCreated>) =>
 
 ```ts
 // app/order/order.test.ts
-import "jest-mq/matchers";
 import { MessageQueue } from "jest-mq";
 import { publishOrder, type OrderCreated } from "./order";
 
