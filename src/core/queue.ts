@@ -79,6 +79,10 @@ export class MessageQueue<T = any> {
     return messageWithId.id;
   }
 
+  publish(message: T): number {
+    return this.sendMessage(message);
+  }
+
   receiveMessage(messageType?: string, autoAck = true): Message<T> | undefined {
     const messageIndex = messageType
       ? this.sentMessages.findIndex((m) => m.type === messageType)
@@ -97,6 +101,17 @@ export class MessageQueue<T = any> {
     return message;
   }
 
+  ack(message: Message<T>): void {
+    const messageIndex = this.sentMessages.findIndex(
+      (m) => m.id === message.id,
+    );
+    if (messageIndex === -1) {
+      return;
+    }
+    const [ackedMessage] = this.sentMessages.splice(messageIndex, 1);
+    this.receivedMessages.push(ackedMessage);
+  }
+
   onMessage(
     messageType: string | undefined,
     handler: MessageHandler<T>,
@@ -107,6 +122,13 @@ export class MessageQueue<T = any> {
     this.handlers.get(messageType)?.push(handler);
 
     return () => this.offMessage(messageType, handler);
+  }
+
+  subscribe(
+    messageType: string | undefined,
+    handler: MessageHandler<T>,
+  ): () => void {
+    return this.onMessage(messageType, handler);
   }
 
   offMessage(

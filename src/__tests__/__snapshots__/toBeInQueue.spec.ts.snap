@@ -1,10 +1,10 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`toBeInQueue should fail if message is not in queue 1`] = `
-"expect(received).toBeInQueue(expectedMessage)
+"[2mexpect([22m[31mreceived[39m[2m).toBeInQueue([22m[32mexpectedMessage[39m[2m)[22m
       
       Expected message to be in queue:
-        {\\"payload\\": \\"test\\", \\"type\\": \\"test\\"}
+        [31m{\\"payload\\": \\"test\\", \\"type\\": \\"test\\"}[39m
       Received:
-        []"
+        [32m[][39m"
 `;

@@ -46,6 +46,45 @@ describe("MessageQueue", () => {
     expect(queue.getQueue().sentMessages).toHaveLength(1);
   });
 
+  it("should publish a message", () => {
+    const id = queue.publish({ type: "test", payload: "test" });
+    expect(id).toBe(0);
+    expect(queue.getQueue().sentMessages).toHaveLength(1);
+  });
+
+  it("should subscribe to a message type", async () => {
+    const handler = jest.fn();
+    queue.subscribe("orderCreated", handler);
+
+    queue.sendMessage({ type: "orderCreated", orderId: 123 });
+
+    await queue.flush();
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("should ack a message", () => {
+    queue.sendMessage({ type: "test", payload: "test" });
+    const message = queue.receiveMessage("test", false);
+
+    expect(queue.getQueue().sentMessages).toHaveLength(1);
+    queue.ack(message!);
+    expect(queue.getQueue().sentMessages).toHaveLength(0);
+    expect(queue.getQueue().receivedMessages).toHaveLength(1);
+  });
+
+  it("should ignore ack when message is not in sent queue", () => {
+    queue.sendMessage({ type: "test", payload: "test" });
+    const message = queue.receiveMessage("test", false);
+    queue.ack(message!);
+
+    expect(queue.getQueue().sentMessages).toHaveLength(0);
+    expect(queue.getQueue().receivedMessages).toHaveLength(1);
+
+    queue.ack(message!);
+    expect(queue.getQueue().sentMessages).toHaveLength(0);
+    expect(queue.getQueue().receivedMessages).toHaveLength(1);
+  });
+
   it("should receive a message without specifying a type", () => {
     const message1 = { payload: "first message" };
 
