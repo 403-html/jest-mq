@@ -56,10 +56,32 @@ describe("MessageQueue", () => {
     const handler = jest.fn();
     queue.subscribe("orderCreated", handler);
 
-    queue.sendMessage({ type: "orderCreated", orderId: 123 });
+    const firstMessage = { type: "orderCreated", orderId: 123 };
+    const secondMessage = { type: "orderCreated", orderId: 456 };
+    queue.sendMessage(firstMessage);
+    queue.sendMessage(secondMessage);
+
+    await queue.flush();
+    expect(handler).toHaveBeenCalledTimes(2);
+    expect(handler.mock.calls).toEqual([
+      [{ ...firstMessage, id: 0 }],
+      [{ ...secondMessage, id: 1 }],
+    ]);
+  });
+
+  it("should unsubscribe a subscribed handler", async () => {
+    const handler = jest.fn();
+    const unsubscribe = queue.subscribe("orderCreated", handler);
+
+    const firstMessage = { type: "orderCreated", orderId: 123 };
+    const secondMessage = { type: "orderCreated", orderId: 456 };
+    queue.sendMessage(firstMessage);
+    unsubscribe();
+    queue.sendMessage(secondMessage);
 
     await queue.flush();
     expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler.mock.calls[0][0]).toEqual({ ...firstMessage, id: 0 });
   });
 
   it("should ack a message", () => {
