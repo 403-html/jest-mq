@@ -47,10 +47,12 @@ export class MessageQueue<T = any> {
   }
 
   private async processHandlers(messageWithId: Message<T>): Promise<void> {
-    const handlers = [
-      ...(this.handlers.get(messageWithId.type) || []),
-      ...(this.handlers.get(undefined) || []),
-    ];
+    const typedHandlers = this.handlers.get(messageWithId.type) || [];
+    const defaultHandlers =
+      messageWithId.type === undefined
+        ? []
+        : this.handlers.get(undefined) || [];
+    const handlers = [...typedHandlers, ...defaultHandlers];
 
     const processing = Promise.all(
       handlers.map((handler) =>
@@ -82,7 +84,9 @@ export class MessageQueue<T = any> {
   receiveMessage(messageType?: string, autoAck = true): Message<T> | undefined {
     const messageIndex = messageType
       ? this.sentMessages.findIndex((m) => m.type === messageType)
-      : 0;
+      : this.sentMessages.length > 0
+        ? 0
+        : -1;
     if (messageIndex === -1) {
       return undefined;
     }
