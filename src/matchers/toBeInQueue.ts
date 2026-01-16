@@ -19,14 +19,14 @@ export const toBeInQueue = function (
     pass: messageIsInQueue,
     message: () => {
       const hint = matcherHint(".toBeInQueue", "received", "expectedMessage");
-      const receivedStr = printReceived(expectedMessage);
-      const expectedStr = printExpected(queue.sentMessages);
+      const expectedStr = printExpected(expectedMessage);
+      const receivedStr = printReceived(queue.sentMessages);
       return `${hint}
       
       Expected message to be in queue:
-        ${receivedStr}
+        ${expectedStr}
       Received:
-        ${expectedStr}`;
+        ${receivedStr}`;
     },
   };
 };
