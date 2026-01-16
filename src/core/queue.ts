@@ -49,7 +49,9 @@ export class MessageQueue<T = any> {
   private async processHandlers(messageWithId: Message<T>): Promise<void> {
     const typedHandlers = this.handlers.get(messageWithId.type) || [];
     const defaultHandlers =
-      messageWithId.type === undefined ? [] : this.handlers.get(undefined) || [];
+      messageWithId.type === undefined
+        ? []
+        : this.handlers.get(undefined) || [];
     const handlers = [...typedHandlers, ...defaultHandlers];
 
     const processing = Promise.all(
