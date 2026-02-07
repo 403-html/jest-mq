@@ -1,9 +1,22 @@
-export type Message<T = any> = { type: string | undefined; id: number } & T;
-export type MessageHandler<T = any> = (
+export type MessagePayload = Record<string, unknown> & {
+  type?: string;
+};
+/**
+ * Queue messages normalize `type` and `id` on the envelope, overriding any
+ * payload values for those fields.
+ */
+export type Message<T extends MessagePayload = MessagePayload> = Omit<
+  T,
+  "type" | "id"
+> & {
+  type: string | undefined;
+  id: number;
+};
+export type MessageHandler<T extends MessagePayload = MessagePayload> = (
   message: Message<T>,
 ) => Promise<void> | void;
 
-export class MessageQueue<T = any> {
+export class MessageQueue<T extends MessagePayload = MessagePayload> {
   private sentMessages: Message<T>[] = [];
   private receivedMessages: Message<T>[] = [];
   private handlers: Map<string | undefined, MessageHandler<T>[]> = new Map();
@@ -73,7 +86,7 @@ export class MessageQueue<T = any> {
   publish(message: T): number {
     const messageWithId: Message<T> = {
       ...message,
-      type: (message as any).type,
+      type: message.type,
       id: this.messageCount++,
     };
     this.sentMessages.push(messageWithId);

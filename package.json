@@ -1,6 +1,6 @@
 {
   "name": "jest-mq",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A Jest framework for testing message queues like RabbitMQ and Kafka.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "format:write": "prettier --write \"src/**/*.ts\"",
-    "quality": "npm run format:check && npm run typecheck && npm test",
+    "lint": "eslint \"src/**/*.ts\"",
+    "quality": "npm run format:check && npm run lint && npm run typecheck && npm test",
     "prepublishOnly": "npm run build && npm test",
     "version:patch": "npm version patch --no-git-tag-version",
     "version:minor": "npm version minor --no-git-tag-version",
@@ -58,6 +59,9 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^25.0.7",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "eslint": "^8.57.1",
     "jest": "^30.2.0",
     "prettier": "^3.7.4",
     "ts-jest": "^29.4.6",
