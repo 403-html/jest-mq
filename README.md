@@ -79,6 +79,55 @@ describe("orders", () => {
 });
 ```
 
+## Queue snapshot performance
+
+`MessageQueue#getQueue()` returns cloned snapshots by default to keep consumers
+from mutating internal state. For read-only inspection on large queues, pass
+`false` to access live references and avoid repeated allocations.
+
+Example run (Node 24.12, 100k messages, 200 iterations; your results may vary):
+
+```text
+queue size: 100000, iterations: 200
+snapshot=true: 75.91ms
+snapshot=false: 0.02ms
+```
+
+Replicate locally:
+
+```sh
+npm install
+npm run build
+node --input-type=module - <<'EOF'
+import { MessageQueue } from "./dist/core/queue.js";
+import { performance } from "node:perf_hooks";
+
+const queue = new MessageQueue("bench");
+const size = 100000;
+for (let i = 0; i < size; i += 1) {
+  queue.publish({ type: "t", payload: i });
+}
+
+const iterations = 200;
+const measure = (snapshot) => {
+  const start = performance.now();
+  for (let i = 0; i < iterations; i += 1) {
+    queue.getQueue(snapshot);
+  }
+  return performance.now() - start;
+};
+
+measure(true);
+measure(false);
+const snapshotMs = measure(true);
+const liveMs = measure(false);
+
+console.log(`queue size: ${size}, iterations: ${iterations}`);
+console.log(`snapshot=true: ${snapshotMs.toFixed(2)}ms`);
+console.log(`snapshot=false: ${liveMs.toFixed(2)}ms`);
+EOF
+```
+
 ## Scope and non-goals
 
 - This is a deterministic test double plus matchers, not a full MQ emulator.
