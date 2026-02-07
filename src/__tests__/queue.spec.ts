@@ -480,7 +480,7 @@ describe("MessageQueue", () => {
     it("should reject invalid prefetch values", () => {
       expect(() =>
         queue.consume("invalid", () => undefined, { prefetch: 0 }),
-      ).toThrow("Prefetch must be greater than 0, got 0");
+      ).toThrow("Prefetch must be at least 1, got 0");
     });
   });
 

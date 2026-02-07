@@ -386,6 +386,9 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     }
   }
 
+  /**
+   * Alias for flush to emphasize draining ready messages.
+   */
   async drain(options: FlushOptions = {}): Promise<void> {
     await this.flush(options);
   }
@@ -397,7 +400,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   ): Consumer<T> {
     const prefetch = options.prefetch ?? 1;
     if (prefetch <= 0) {
-      throw new Error(`Prefetch must be greater than 0, got ${prefetch}`);
+      throw new Error(`Prefetch must be at least 1, got ${prefetch}`);
     }
     const consumer: Consumer<T> = {
       id: this.consumerCount++,
