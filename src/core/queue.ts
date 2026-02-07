@@ -1,10 +1,13 @@
 export type MessagePayload = Record<string, unknown> & {
   type?: string;
 };
-export type Message<T extends MessagePayload = MessagePayload> = {
+export type Message<T extends MessagePayload = MessagePayload> = Omit<
+  T,
+  "type" | "id"
+> & {
   type: string | undefined;
   id: number;
-} & T;
+};
 export type MessageHandler<T extends MessagePayload = MessagePayload> = (
   message: Message<T>,
 ) => Promise<void> | void;
