@@ -156,8 +156,13 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     // Clear tracking without cancelling in-flight handler execution.
     // Call flush() before clear if you need to capture in-flight handler errors.
     // In-flight handlers will still complete, but their errors are not retained.
-    this.pendingHandlers?.clear();
-    this.handlerErrors = [];
+    if (this.dispatchOnPublish) {
+      this.pendingHandlers?.clear();
+      this.handlerErrors = [];
+    } else {
+      this.pendingHandlers = undefined;
+      this.handlerErrors = undefined;
+    }
   }
 
   publish(message: T): number {
@@ -451,21 +456,17 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   }
 
   private queueHandler(consumer: Consumer<T>, message: Message<T>): void {
-    if (!this.pendingHandlers || !this.handlerErrors) {
-      this.pendingHandlers = this.pendingHandlers ?? new Set();
-      this.handlerErrors = this.handlerErrors ?? [];
-    }
     const processing = Promise.resolve()
       .then(() => consumer.handler(message))
       .catch((error) => {
-        this.handlerErrors?.push(
+        this.handlerErrors!.push(
           error instanceof Error ? error : new Error(String(error)),
         );
       });
 
-    this.pendingHandlers.add(processing);
+    this.pendingHandlers!.add(processing);
     processing.finally(() => {
-      this.pendingHandlers?.delete(processing);
+      this.pendingHandlers!.delete(processing);
     });
   }
 
