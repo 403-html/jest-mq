@@ -82,6 +82,53 @@ describe("orders", () => {
 If `dispatchOnPublish` is enabled (default), call `flush()` before `clear()`
 to avoid dropping in-flight handler errors.
 
+## Testing real-world workflows
+
+Keep your production broker wiring unchanged and inject `MessageQueue` in tests.
+Register real handlers (jobs, workers, or services) against the queue and
+assert on their side effects.
+
+```ts
+// app/order/worker.ts
+export type OrderCreated = { type: "order.created"; orderId: string };
+
+export const handleOrderCreated = async (
+  message: OrderCreated,
+  deps: { notifier: { send: (orderId: string) => Promise<void> } },
+) => {
+  await deps.notifier.send(message.orderId);
+};
+```
+
+```ts
+// app/order/worker.test.ts
+import { MessageQueue } from "jest-mq";
+import { handleOrderCreated, type OrderCreated } from "./worker";
+
+describe("order worker", () => {
+  it("runs the real handler with a test double broker", async () => {
+    const queue = new MessageQueue<OrderCreated>("orders", {
+      dispatchOnPublish: false,
+    });
+    const notifier = { send: jest.fn().mockResolvedValue(undefined) };
+
+    queue.consume(
+      "order.created",
+      async (message) => {
+        await handleOrderCreated(message, { notifier });
+        queue.ack(message);
+      },
+      { autoAck: false, prefetch: 1 },
+    );
+
+    queue.publish({ type: "order.created", orderId: "order-123" });
+    await queue.flush();
+
+    expect(notifier.send).toHaveBeenCalledWith("order-123");
+  });
+});
+```
+
 ## Deterministic delivery helpers
 
 By default, `publish()` still dispatches handlers (legacy behavior). For
