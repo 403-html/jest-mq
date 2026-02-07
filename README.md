@@ -90,10 +90,15 @@ const queue = new MessageQueue("jobs", {
   deliveryMode: "competing",
   dispatchOnPublish: false,
 });
+const jobRunner = {
+  run: async (payload: string) => {
+    // call your real job handler / worker
+  },
+};
 const consumer = queue.consume(
   "job",
   async (message) => {
-    // handle job
+    await jobRunner.run(message.payload as string);
     queue.ack(message);
   },
   { autoAck: false, prefetch: 1 },
