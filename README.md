@@ -164,6 +164,12 @@ Ready-state helpers are available for assertions:
 - `peekReady()` / `peekAllReady()`
 - `readyCount()` / `inFlightCount()` / `ackedCount()`
 
+Custom matchers are also available:
+
+- `expect(queue).toHaveReadyCount(1)`
+- `expect(queue).toHaveInFlightCount(0)`
+- `expect(queue).toHaveAckedCount(1)`
+
 ## Queue snapshot performance
 
 `MessageQueue#getQueue()` returns cloned snapshots by default to keep consumers

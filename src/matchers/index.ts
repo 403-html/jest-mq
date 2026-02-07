@@ -1,5 +1,8 @@
 import { toBeInQueue } from "./toBeInQueue";
 import { toHaveEmptyQueue } from "./toHaveEmptyQueue";
+import { toHaveReadyCount } from "./toHaveReadyCount";
+import { toHaveInFlightCount } from "./toHaveInFlightCount";
+import { toHaveAckedCount } from "./toHaveAckedCount";
 import type { MessagePayload } from "../core/queue";
 
 declare global {
@@ -7,6 +10,9 @@ declare global {
     interface Matchers<R> {
       toBeInQueue(expectedMessage: MessagePayload): R;
       toHaveEmptyQueue(): R;
+      toHaveReadyCount(expected: number): R;
+      toHaveInFlightCount(expected: number): R;
+      toHaveAckedCount(expected: number): R;
     }
   }
 }
@@ -14,4 +20,7 @@ declare global {
 expect.extend({
   toBeInQueue,
   toHaveEmptyQueue,
+  toHaveReadyCount,
+  toHaveInFlightCount,
+  toHaveAckedCount,
 });
