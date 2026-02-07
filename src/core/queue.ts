@@ -258,7 +258,9 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
         }
         if (Date.now() - startTime > timeoutMs) {
           clearInterval(intervalId);
-          reject(new Error("Timeout waiting for condition"));
+          reject(
+            new Error(`Timeout waiting for condition after ${timeoutMs}ms`),
+          );
         }
       }, 10);
     });
@@ -395,7 +397,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   ): Consumer<T> {
     const prefetch = options.prefetch ?? 1;
     if (prefetch <= 0) {
-      throw new Error("Prefetch must be greater than 0");
+      throw new Error(`Prefetch must be greater than 0, got ${prefetch}`);
     }
     const consumer: Consumer<T> = {
       id: this.consumerCount++,

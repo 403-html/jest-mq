@@ -152,7 +152,7 @@ describe("MessageQueue", () => {
     it("should time out when predicate stays false", async () => {
       await expect(
         queue.waitFor(() => false, { timeoutMs: 20 }),
-      ).rejects.toThrow("Timeout waiting for condition");
+      ).rejects.toThrow("Timeout waiting for condition after 20ms");
     });
   });
 
@@ -480,7 +480,7 @@ describe("MessageQueue", () => {
     it("should reject invalid prefetch values", () => {
       expect(() =>
         queue.consume("invalid", () => undefined, { prefetch: 0 }),
-      ).toThrow("Prefetch must be greater than 0");
+      ).toThrow("Prefetch must be greater than 0, got 0");
     });
   });
 
