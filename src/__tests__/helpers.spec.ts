@@ -1,8 +1,9 @@
 import { expectMessage } from "../core/helpers";
-import { MessageQueue, Message } from "../core/queue";
+import { MessageQueue, Message, type MessagePayload } from "../core/queue";
 
 describe("expectMessage", () => {
-  let queue: MessageQueue<any>;
+  type TestMessage = MessagePayload & { type: string; payload: string };
+  let queue: MessageQueue<TestMessage>;
 
   beforeEach(() => {
     queue = new MessageQueue("test");
@@ -10,16 +11,17 @@ describe("expectMessage", () => {
 
   it("should resolve with the message if it arrives within the default timeout", async () => {
     const messageType = "testMessage";
-    const expectedMessage: Message<any> = {
+    const expectedMessage: Message<TestMessage> = {
       type: messageType,
       payload: "testPayload",
+      id: 0,
     };
 
     jest.spyOn(queue, "receiveMessage").mockImplementation((type) => {
       if (type === messageType) {
         return expectedMessage;
       }
-      return null;
+      return undefined;
     });
 
     const message = await expectMessage({ queue, messageType });
@@ -28,12 +30,13 @@ describe("expectMessage", () => {
 
   it("should resolve with the message if it arrives within the timeout, after some time", async () => {
     const messageType = "testMessage";
-    const expectedMessage: Message<any> = {
+    const expectedMessage: Message<TestMessage> = {
       type: messageType,
       payload: "testPayload",
+      id: 0,
     };
 
-    jest.spyOn(queue, "receiveMessage").mockReturnValueOnce(null);
+    jest.spyOn(queue, "receiveMessage").mockReturnValueOnce(undefined);
 
     setTimeout(() => {
       jest.spyOn(queue, "receiveMessage").mockReturnValueOnce(expectedMessage);
@@ -46,7 +49,7 @@ describe("expectMessage", () => {
   it("should reject with an error if the timeout is reached before the message arrives", async () => {
     const messageType = "testMessage";
 
-    jest.spyOn(queue, "receiveMessage").mockReturnValue(null);
+    jest.spyOn(queue, "receiveMessage").mockReturnValue(undefined);
 
     await expect(
       expectMessage({ queue, messageType, timeout: 100 }),
@@ -56,16 +59,17 @@ describe("expectMessage", () => {
   it("should resolve with the correct message type", async () => {
     const messageType = "testMessage";
     const wrongMessageType = "wrongMessage";
-    const expectedMessage: Message<any> = {
+    const expectedMessage: Message<TestMessage> = {
       type: messageType,
       payload: "testPayload",
+      id: 0,
     };
 
     jest.spyOn(queue, "receiveMessage").mockImplementation((type) => {
       if (type === messageType) {
         return expectedMessage;
       }
-      return null;
+      return undefined;
     });
 
     const message = await expectMessage({ queue, messageType, timeout: 100 });

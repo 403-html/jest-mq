@@ -1,10 +1,10 @@
-import { MessageQueue } from "../core/queue";
+import { MessageQueue, type MessagePayload } from "../core/queue";
 import { matcherHint, printReceived, printExpected } from "jest-matcher-utils";
 
 export const toBeInQueue = function (
   this: jest.MatcherContext,
-  received: MessageQueue<any>,
-  expectedMessage: any,
+  received: MessageQueue,
+  expectedMessage: MessagePayload,
 ) {
   const queue = received.getQueue();
   const messageIsInQueue = queue.sentMessages.some((message) => {
