@@ -25,12 +25,14 @@ Production code uses your real broker clients directly. Tests replace that wirin
 
 Note: `MessageQueue` adds test-only metadata (`id` and a normalized `type`) so it can route handlers, support acks, and keep deterministic ordering. Your app message types stay clean and app-defined.
 
-## App + test (compact example)
+## Examples
 
 ```ts
-// app/order/order.ts
-export type OrderCreated = { type: "order.created"; orderId: string };
+import "jest-mq/matchers";
+import { MessageQueue } from "jest-mq";
 
+// Production broker shape (keep this in your app).
+export type OrderCreated = { type: "order.created"; orderId: string };
 export type Broker<T> = {
   publish: (message: T) => Promise<void> | void | Promise<number> | number;
   subscribe: (
@@ -39,136 +41,56 @@ export type Broker<T> = {
   ) => () => void;
   ack: (message: T) => void;
 };
-
-export const publishOrder = (broker: Broker<OrderCreated>, orderId: string) =>
-  broker.publish({ type: "order.created", orderId });
-
-export const registerOrderConsumer = (broker: Broker<OrderCreated>) =>
-  broker.subscribe("order.created", async (message) => {
-    broker.ack(message);
-  });
-```
-
-```ts
-// app/order/order.test.ts
-import "jest-mq/matchers"; // or import in jest setup
-import { MessageQueue } from "jest-mq";
-import { publishOrder, type OrderCreated } from "./order";
-
-describe("orders", () => {
-  it("publishes order.created with deterministic ids", async () => {
-    const queue = new MessageQueue<OrderCreated>("orders");
-
-    await publishOrder(queue, "order-123");
-    await publishOrder(queue, "order-456");
-
-    expect(queue).toBeInQueue({ type: "order.created", orderId: "order-123" });
-    expect(queue).toBeInQueue({ type: "order.created", orderId: "order-456" });
-
-    const peek = queue.peekReady("order.created");
-    expect(peek?.orderId).toBe("order-123");
-    expect(queue).toBeInQueue({ type: "order.created", orderId: "order-123" });
-    expect(queue).toBeInQueue({ type: "order.created", orderId: "order-456" });
-
-    const first = queue.receiveMessage("order.created");
-    const second = queue.receiveMessage("order.created");
-    expect(first).toMatchObject({ orderId: "order-123", id: 0 });
-    expect(second).toMatchObject({ orderId: "order-456", id: 1 });
-    await queue.flush();
-  });
-});
-```
-
-If `dispatchOnPublish` is enabled (default), call `flush()` before `clear()`
-to avoid dropping in-flight handler errors.
-
-## Testing real-world workflows
-
-Keep your production broker wiring unchanged and inject `MessageQueue` in tests.
-Register real handlers (jobs, workers, or services) against the queue and
-assert on their side effects.
-
-```ts
-// app/order/worker.ts
-export type OrderCreated = { type: "order.created"; orderId: string };
-
 export const handleOrderCreated = async (
   message: OrderCreated,
   deps: { notifier: { send: (orderId: string) => Promise<void> } },
 ) => {
   await deps.notifier.send(message.orderId);
 };
-```
 
-```ts
-// app/order/worker.test.ts
-import { MessageQueue } from "jest-mq";
-import { handleOrderCreated, type OrderCreated } from "./worker";
+// Test: publish + deterministic ids.
+const queue = new MessageQueue<OrderCreated>("orders");
+queue.publish({ type: "order.created", orderId: "order-123" });
+queue.publish({ type: "order.created", orderId: "order-456" });
+expect(queue).toBeInQueue({ type: "order.created", orderId: "order-123" });
+expect(queue.peekReady("order.created")?.orderId).toBe("order-123");
+const first = queue.receiveMessage("order.created");
+const second = queue.receiveMessage("order.created");
+expect(first).toMatchObject({ orderId: "order-123", id: 0 });
+expect(second).toMatchObject({ orderId: "order-456", id: 1 });
+await queue.flush();
 
-describe("order worker", () => {
-  it("runs the real handler with a test double broker", async () => {
-    const queue = new MessageQueue<OrderCreated>("orders", {
-      dispatchOnPublish: false,
-    });
-    const notifier = { send: jest.fn().mockResolvedValue(undefined) };
-
-    queue.consume(
-      "order.created",
-      async (message) => {
-        await handleOrderCreated(message, { notifier });
-        queue.ack(message);
-      },
-      { autoAck: false, prefetch: 1 },
-    );
-
-    queue.publish({ type: "order.created", orderId: "order-123" });
-    await queue.flush();
-
-    expect(notifier.send).toHaveBeenCalledWith("order-123");
-  });
-});
-```
-
-## Deterministic delivery helpers
-
-By default, `publish()` still dispatches handlers (legacy behavior). For
-deterministic tests, disable that with `dispatchOnPublish: false` and call
-`flush()` (or `drain()`) to deliver messages.
-
-```ts
-const queue = new MessageQueue("jobs", {
-  deliveryMode: "competing",
+// Test: deterministic worker with a real handler and external dependency.
+const notifier = { send: jest.fn().mockResolvedValue(undefined) };
+const queueForWorker = new MessageQueue<OrderCreated>("orders", {
   dispatchOnPublish: false,
 });
-const jobRunner = {
-  run: async (payload: string) => {
-    // call your real job handler / worker
-  },
-};
-const consumer = queue.consume(
-  "job",
+queueForWorker.consume(
+  "order.created",
   async (message) => {
-    await jobRunner.run(message.payload as string);
-    queue.ack(message);
+    await handleOrderCreated(message, { notifier });
+    queueForWorker.ack(message);
   },
   { autoAck: false, prefetch: 1 },
 );
+queueForWorker.publish({ type: "order.created", orderId: "order-123" });
+await queueForWorker.flush();
+expect(notifier.send).toHaveBeenCalledWith("order-123");
 
-queue.publish({ type: "job", payload: "example" });
-await queue.flush();
-consumer.stats();
+// Test: immediate dispatch (default) with error capture before clear.
+const legacyQueue = new MessageQueue<OrderCreated>("orders");
+legacyQueue.subscribe("order.created", async (message) => {
+  legacyQueue.ack(message);
+});
+legacyQueue.publish({ type: "order.created", orderId: "order-789" });
+await legacyQueue.flush(); // call before clear to capture handler errors
+legacyQueue.clear();
+
+// Assertions & matchers.
+expect(queue).toHaveReadyCount(0);
+expect(queue).toHaveInFlightCount(0);
+expect(queue).toHaveAckedCount(2);
 ```
-
-Ready-state helpers are available for assertions:
-
-- `peekReady()` / `peekAllReady()`
-- `readyCount()` / `inFlightCount()` / `ackedCount()`
-
-Custom matchers are also available:
-
-- `expect(queue).toHaveReadyCount(1)`
-- `expect(queue).toHaveInFlightCount(0)`
-- `expect(queue).toHaveAckedCount(1)`
 
 ## Queue snapshot performance
 
