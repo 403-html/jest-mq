@@ -298,5 +298,61 @@ describe("MessageQueue", () => {
         expect((aggregate.errors[0] as Error).message).toBe("handler failed");
       }
     });
+
+    it("should keep running other handlers when one fails", async () => {
+      const failingHandler = jest.fn(() => {
+        throw new Error("handler failed");
+      });
+      const successHandler = jest.fn();
+
+      queue.subscribe("isolatedEvent", failingHandler);
+      queue.subscribe("isolatedEvent", successHandler);
+      queue.publish({ type: "isolatedEvent" });
+
+      await expect(queue.flush()).rejects.toThrow(
+        "One or more message handlers failed",
+      );
+      expect(failingHandler).toHaveBeenCalledTimes(1);
+      expect(successHandler).toHaveBeenCalledTimes(1);
+    });
+
+    it("should wait for concurrent handlers to finish before resolving", async () => {
+      let resolveFirst: () => void = () => {};
+      let resolveSecond: () => void = () => {};
+      const firstGate = new Promise<void>((resolve) => {
+        resolveFirst = resolve;
+      });
+      const secondGate = new Promise<void>((resolve) => {
+        resolveSecond = resolve;
+      });
+
+      const handler = jest.fn((message: { payload?: unknown }) => {
+        if (message.payload === "first") {
+          return firstGate;
+        }
+        return secondGate;
+      });
+
+      queue.subscribe("concurrentEvent", handler);
+      queue.publish({ type: "concurrentEvent", payload: "first" });
+      queue.publish({ type: "concurrentEvent", payload: "second" });
+
+      let flushResolved = false;
+      const flushPromise = queue.flush().then(() => {
+        flushResolved = true;
+      });
+
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(flushResolved).toBe(false);
+
+      resolveFirst();
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(flushResolved).toBe(false);
+
+      resolveSecond();
+      await flushPromise;
+      expect(flushResolved).toBe(true);
+      expect(handler).toHaveBeenCalledTimes(2);
+    });
   });
 });
