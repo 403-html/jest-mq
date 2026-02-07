@@ -117,6 +117,7 @@ const measure = (snapshot) => {
   return performance.now() - start;
 };
 
+// Warm-up to reduce JIT effects before timing.
 measure(true);
 measure(false);
 const snapshotMs = measure(true);
