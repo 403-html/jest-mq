@@ -317,8 +317,8 @@ describe("MessageQueue", () => {
     });
 
     it("should wait for concurrent handlers to finish before resolving", async () => {
-      let resolveFirst: () => void = () => {};
-      let resolveSecond: () => void = () => {};
+      let resolveFirst: () => void;
+      let resolveSecond: () => void;
       const firstGate = new Promise<void>((resolve) => {
         resolveFirst = resolve;
       });

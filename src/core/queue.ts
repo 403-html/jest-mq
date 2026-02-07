@@ -36,6 +36,10 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     }
   }
 
+  /**
+   * Returns a snapshot of the queue by default. Pass `false` to access live
+   * references for read-only inspection without cloning.
+   */
   getQueue(snapshot = true): {
     name: string;
     sentMessages: Message<T>[];
