@@ -159,9 +159,6 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     if (this.dispatchOnPublish) {
       this.pendingHandlers?.clear();
       this.handlerErrors = [];
-    } else {
-      this.pendingHandlers = undefined;
-      this.handlerErrors = undefined;
     }
   }
 
@@ -456,17 +453,20 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   }
 
   private queueHandler(consumer: Consumer<T>, message: Message<T>): void {
+    const pendingHandlers =
+      this.pendingHandlers ?? (this.pendingHandlers = new Set());
+    const handlerErrors = this.handlerErrors ?? (this.handlerErrors = []);
     const processing = Promise.resolve()
       .then(() => consumer.handler(message))
       .catch((error) => {
-        this.handlerErrors!.push(
+        handlerErrors.push(
           error instanceof Error ? error : new Error(String(error)),
         );
       });
 
-    this.pendingHandlers!.add(processing);
+    pendingHandlers.add(processing);
     processing.finally(() => {
-      this.pendingHandlers!.delete(processing);
+      pendingHandlers.delete(processing);
     });
   }
 
