@@ -109,7 +109,7 @@ Ready-state helpers are available for assertions:
 - `peekReady()` / `peekAllReady()`
 - `readyCount()` / `inFlightCount()` / `ackedCount()`
 
-If you use the legacy `dispatchOnPublish` mode, call `flush()` before `clear()`
+If `dispatchOnPublish` is enabled (default), call `flush()` before `clear()`
 to avoid dropping in-flight handler errors.
 
 ## Queue snapshot performance
