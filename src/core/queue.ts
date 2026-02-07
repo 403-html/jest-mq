@@ -150,6 +150,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     this.consumerCount = 0;
     this.nextConsumerIndex.clear();
     // Clear tracking without cancelling in-flight handler execution.
+    // Call flush() first if you need to wait for running handlers to finish.
     this.pendingHandlers.clear();
     this.handlerErrors = [];
   }
@@ -281,8 +282,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     if (this.dispatchOnPublish) {
       await Promise.all(Array.from(this.pendingHandlers));
       if (this.handlerErrors.length > 0) {
-        const errors = this.handlerErrors;
-        this.handlerErrors = [];
+        const errors = this.handlerErrors.splice(0);
         const captureErrors = options.captureErrors ?? this.captureErrors;
         if (captureErrors) {
           throw new AggregateError(errors, "One or more message handlers failed");
