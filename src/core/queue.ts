@@ -1,6 +1,5 @@
 export type MessagePayload = Record<string, unknown> & {
   type?: string;
-  id?: never;
 };
 export type Message<T extends MessagePayload = MessagePayload> = Omit<
   T,
