@@ -93,8 +93,8 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   private captureErrors: boolean;
   private dispatchOnPublish: boolean;
   private nextConsumerIndex = new Map<string | undefined, number>();
-  private pendingHandlers?: Set<Promise<void>>;
-  private handlerErrors?: Error[];
+  private pendingHandlers: Set<Promise<void>> = new Set();
+  private handlerErrors: Error[] = [];
 
   constructor(
     public name: string,
@@ -113,10 +113,6 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     this.failFast = options.failFast ?? false;
     this.captureErrors = options.captureErrors ?? true;
     this.dispatchOnPublish = options.dispatchOnPublish ?? true;
-    if (this.dispatchOnPublish) {
-      this.pendingHandlers = new Set();
-      this.handlerErrors = [];
-    }
   }
 
   /**
@@ -156,10 +152,8 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     // Clear tracking without cancelling in-flight handler execution.
     // Call flush() before clear if you need to capture in-flight handler errors.
     // In-flight handlers will still complete, but their errors are not retained.
-    if (this.dispatchOnPublish) {
-      this.pendingHandlers?.clear();
-      this.handlerErrors = [];
-    }
+    this.pendingHandlers.clear();
+    this.handlerErrors = [];
   }
 
   publish(message: T): number {
@@ -287,11 +281,10 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
 
   async flush(options: FlushOptions = {}): Promise<void> {
     if (this.dispatchOnPublish) {
-      const pendingHandlers = Array.from(this.pendingHandlers ?? []);
+      const pendingHandlers = Array.from(this.pendingHandlers);
       await Promise.all(pendingHandlers);
-      const handlerErrors = this.handlerErrors ?? [];
-      if (handlerErrors.length > 0) {
-        const errors = [...handlerErrors];
+      if (this.handlerErrors.length > 0) {
+        const errors = [...this.handlerErrors];
         const captureErrors = options.captureErrors ?? this.captureErrors;
         this.handlerErrors = [];
         if (captureErrors) {
@@ -453,25 +446,17 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   }
 
   private queueHandler(consumer: Consumer<T>, message: Message<T>): void {
-    if (!this.dispatchOnPublish) {
-      return;
-    }
-    const pendingHandlers = this.pendingHandlers;
-    const handlerErrors = this.handlerErrors;
-    if (!pendingHandlers || !handlerErrors) {
-      return;
-    }
     const processing = Promise.resolve()
       .then(() => consumer.handler(message))
       .catch((error) => {
-        handlerErrors.push(
+        this.handlerErrors.push(
           error instanceof Error ? error : new Error(String(error)),
         );
       });
 
-    pendingHandlers.add(processing);
+    this.pendingHandlers.add(processing);
     processing.finally(() => {
-      pendingHandlers.delete(processing);
+      this.pendingHandlers.delete(processing);
     });
   }
 
