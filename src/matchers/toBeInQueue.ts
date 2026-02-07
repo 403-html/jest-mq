@@ -6,7 +6,7 @@ export const toBeInQueue = function (
   received: MessageQueue,
   expectedMessage: MessagePayload,
 ) {
-  const queue = received.getQueue();
+  const queue = received.getQueue(false);
   const messageIsInQueue = queue.sentMessages.some((message) => {
     return this.equals(
       // Exclude id from comparison, it's provided by the queue

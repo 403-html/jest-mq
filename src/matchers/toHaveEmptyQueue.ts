@@ -5,7 +5,7 @@ export const toHaveEmptyQueue = function (
   this: jest.MatcherContext,
   received: MessageQueue,
 ) {
-  const queue = received.getQueue();
+  const queue = received.getQueue(false);
   const queueIsEmpty = queue.sentMessages.length === 0;
 
   return {

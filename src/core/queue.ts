@@ -36,12 +36,20 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     }
   }
 
-  getQueue(): {
+  getQueue(snapshot = true): {
     name: string;
     sentMessages: Message<T>[];
     receivedMessages: Message<T>[];
     handlers: Map<string | undefined, MessageHandler<T>[]>;
   } {
+    if (!snapshot) {
+      return {
+        name: this.name,
+        sentMessages: this.sentMessages,
+        receivedMessages: this.receivedMessages,
+        handlers: this.handlers,
+      };
+    }
     return {
       name: this.name,
       sentMessages: [...this.sentMessages],
