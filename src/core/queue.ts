@@ -456,9 +456,11 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     if (!this.dispatchOnPublish) {
       return;
     }
-    const pendingHandlers =
-      this.pendingHandlers ?? (this.pendingHandlers = new Set());
-    const handlerErrors = this.handlerErrors ?? (this.handlerErrors = []);
+    const pendingHandlers = this.pendingHandlers;
+    const handlerErrors = this.handlerErrors;
+    if (!pendingHandlers || !handlerErrors) {
+      return;
+    }
     const processing = Promise.resolve()
       .then(() => consumer.handler(message))
       .catch((error) => {
