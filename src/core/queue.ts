@@ -326,7 +326,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
             runHandler(consumer, message);
           }
           if (failFast) {
-            return true;
+            break;
           }
           continue;
         }
@@ -346,7 +346,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
         selected.delivered += 1;
         runHandler(selected, message);
         if (failFast) {
-          return true;
+          break;
         }
       }
       return dispatched;
@@ -394,11 +394,14 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     options: ConsumeOptions,
   ): Consumer<T> {
     const prefetch = options.prefetch ?? 1;
+    if (prefetch <= 0) {
+      throw new Error("Prefetch must be greater than 0");
+    }
     const consumer: Consumer<T> = {
       id: this.consumerCount++,
       messageType,
       handler,
-      prefetch: prefetch > 0 ? prefetch : 1,
+      prefetch,
       autoAck: options.autoAck ?? true,
       inFlight: [],
       delivered: 0,

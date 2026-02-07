@@ -476,6 +476,12 @@ describe("MessageQueue", () => {
 
       expect(handler).toHaveBeenCalledTimes(2);
     });
+
+    it("should reject invalid prefetch values", () => {
+      expect(() =>
+        queue.consume("invalid", () => undefined, { prefetch: 0 }),
+      ).toThrow("Prefetch must be greater than 0");
+    });
   });
 
   describe("flush", () => {
