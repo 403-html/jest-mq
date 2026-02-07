@@ -2,7 +2,7 @@
 
 exports[`queue count matchers should show a readable error when counts differ 1`] = `
 "expect(received).toHaveReadyCount(expected)
-      
+
       Expected ready count:
         1
       Received:

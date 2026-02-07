@@ -14,7 +14,7 @@ export const toHaveInFlightCount = function (
     message: () => {
       const hint = matcherHint(".toHaveInFlightCount", "received", "expected");
       return `${hint}
-      
+
       Expected in-flight count:
         ${printExpected(expected)}
       Received:

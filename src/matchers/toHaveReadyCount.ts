@@ -14,7 +14,7 @@ export const toHaveReadyCount = function (
     message: () => {
       const hint = matcherHint(".toHaveReadyCount", "received", "expected");
       return `${hint}
-      
+
       Expected ready count:
         ${printExpected(expected)}
       Received:
