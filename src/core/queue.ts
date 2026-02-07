@@ -95,6 +95,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   private nextConsumerIndex = new Map<string | undefined, number>();
   private pendingHandlers: Set<Promise<void>> = new Set();
   private handlerErrors: Error[] = [];
+  private legacyFlushPromise?: Promise<void>;
 
   constructor(
     public name: string,
@@ -150,7 +151,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     this.consumerCount = 0;
     this.nextConsumerIndex.clear();
     // Clear tracking without cancelling in-flight handler execution.
-    // In-flight handler results and errors will no longer be tracked.
+    // Call flush() first if you need to wait; results/errors after clear are not tracked.
     this.pendingHandlers.clear();
     this.handlerErrors = [];
   }
@@ -280,15 +281,29 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
 
   async flush(options: FlushOptions = {}): Promise<void> {
     if (this.dispatchOnPublish) {
-      await Promise.all(Array.from(this.pendingHandlers));
-      if (this.handlerErrors.length > 0) {
-        const errors = [...this.handlerErrors];
-        this.handlerErrors = [];
-        const captureErrors = options.captureErrors ?? this.captureErrors;
-        if (captureErrors) {
-          throw new AggregateError(errors, "One or more message handlers failed");
+      if (this.legacyFlushPromise) {
+        await this.legacyFlushPromise;
+        return;
+      }
+      this.legacyFlushPromise = (async () => {
+        await Promise.all(Array.from(this.pendingHandlers));
+        if (this.handlerErrors.length > 0) {
+          const errors = [...this.handlerErrors];
+          this.handlerErrors = [];
+          const captureErrors = options.captureErrors ?? this.captureErrors;
+          if (captureErrors) {
+            throw new AggregateError(
+              errors,
+              "One or more message handlers failed",
+            );
+          }
+          throw errors[0];
         }
-        throw errors[0];
+      })();
+      try {
+        await this.legacyFlushPromise;
+      } finally {
+        this.legacyFlushPromise = undefined;
       }
       return;
     }
