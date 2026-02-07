@@ -81,11 +81,15 @@ describe("orders", () => {
 
 ## Deterministic delivery helpers
 
-`publish()` only enqueues messages. Call `flush()` (or `drain()`) to deliver
-messages deterministically during tests.
+By default, `publish()` still dispatches handlers (legacy behavior). For
+deterministic tests, disable that with `dispatchOnPublish: false` and call
+`flush()` (or `drain()`) to deliver messages.
 
 ```ts
-const queue = new MessageQueue("jobs", { deliveryMode: "competing" });
+const queue = new MessageQueue("jobs", {
+  deliveryMode: "competing",
+  dispatchOnPublish: false,
+});
 const consumer = queue.consume(
   "job",
   async (message) => {

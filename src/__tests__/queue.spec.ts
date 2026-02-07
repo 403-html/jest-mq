@@ -4,7 +4,7 @@ describe("MessageQueue", () => {
   let queue: MessageQueue;
 
   beforeEach(() => {
-    queue = new MessageQueue("test");
+    queue = new MessageQueue("test", { dispatchOnPublish: false });
   });
 
   afterEach(() => {
@@ -360,6 +360,19 @@ describe("MessageQueue", () => {
       queue.publish(message);
 
       expect(handler).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("backwards compatibility", () => {
+    it("should dispatch handlers on publish by default", async () => {
+      const legacyQueue = new MessageQueue("legacy");
+      const handler = jest.fn();
+
+      legacyQueue.subscribe("legacy", handler);
+      legacyQueue.publish({ type: "legacy", payload: "test" });
+
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(handler).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -22,6 +22,7 @@ export type QueueOptions = {
   deliveryMode?: DeliveryMode;
   failFast?: boolean;
   captureErrors?: boolean;
+  dispatchOnPublish?: boolean;
 };
 
 export type ConsumeOptions = {
@@ -90,7 +91,10 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   private deliveryMode: DeliveryMode;
   private failFast: boolean;
   private captureErrors: boolean;
+  private dispatchOnPublish: boolean;
   private nextConsumerIndex = new Map<string | undefined, number>();
+  private pendingHandlers: Set<Promise<void>> = new Set();
+  private handlerErrors: Error[] = [];
 
   constructor(
     public name: string,
@@ -108,6 +112,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     this.deliveryMode = options.deliveryMode ?? "broadcast";
     this.failFast = options.failFast ?? false;
     this.captureErrors = options.captureErrors ?? true;
+    this.dispatchOnPublish = options.dispatchOnPublish ?? true;
   }
 
   /**
@@ -144,6 +149,8 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     this.messageCount = 0;
     this.consumerCount = 0;
     this.nextConsumerIndex.clear();
+    this.pendingHandlers.clear();
+    this.handlerErrors = [];
   }
 
   publish(message: T): number {
@@ -155,6 +162,9 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
       redelivered: false,
     };
     this.sentMessages.push(messageWithId);
+    if (this.dispatchOnPublish) {
+      this.dispatchHandlers(messageWithId);
+    }
     return messageWithId.id;
   }
 
@@ -267,6 +277,19 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   }
 
   async flush(options: FlushOptions = {}): Promise<void> {
+    if (this.dispatchOnPublish) {
+      await Promise.all(Array.from(this.pendingHandlers));
+      if (this.handlerErrors.length > 0) {
+        const errors = this.handlerErrors;
+        this.handlerErrors = [];
+        const captureErrors = options.captureErrors ?? this.captureErrors;
+        if (captureErrors) {
+          throw new AggregateError(errors, "One or more message handlers failed");
+        }
+        throw errors[0];
+      }
+      return;
+    }
     const errors: Error[] = [];
     const failFast = options.failFast ?? this.failFast;
     const captureErrors = options.captureErrors ?? this.captureErrors;
@@ -391,6 +414,43 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
    */
   async drain(options: FlushOptions = {}): Promise<void> {
     await this.flush(options);
+  }
+
+  private dispatchHandlers(message: Message<T>): void {
+    const matchingConsumers = this.getConsumersForMessage(message);
+    if (matchingConsumers.length === 0) {
+      return;
+    }
+
+    if (this.deliveryMode === "competing") {
+      const selected = this.selectCompetingConsumer(
+        matchingConsumers,
+        message.type,
+      );
+      if (selected) {
+        this.queueHandler(selected, message);
+      }
+      return;
+    }
+
+    for (const consumer of matchingConsumers) {
+      this.queueHandler(consumer, message);
+    }
+  }
+
+  private queueHandler(consumer: Consumer<T>, message: Message<T>): void {
+    const processing = Promise.resolve()
+      .then(() => consumer.handler(message))
+      .catch((error) => {
+        this.handlerErrors.push(
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      })
+      .finally(() => {
+        this.pendingHandlers.delete(processing);
+      });
+
+    this.pendingHandlers.add(processing);
   }
 
   private createConsumer(
