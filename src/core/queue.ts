@@ -1,5 +1,5 @@
 export type MessagePayload = Record<string, unknown> & {
-  type?: string | undefined;
+  type?: string;
 };
 export type Message<T extends MessagePayload = MessagePayload> = {
   type: string | undefined;
