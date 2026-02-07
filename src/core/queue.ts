@@ -112,6 +112,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     this.deliveryMode = options.deliveryMode ?? "broadcast";
     this.failFast = options.failFast ?? false;
     this.captureErrors = options.captureErrors ?? true;
+    // Default to true for backward compatibility with publish-time dispatch.
     this.dispatchOnPublish = options.dispatchOnPublish ?? true;
   }
 
@@ -150,7 +151,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     this.consumerCount = 0;
     this.nextConsumerIndex.clear();
     // Clear tracking without cancelling in-flight handler execution.
-    // Call flush() before clear if you need to capture in-flight handler errors.
+    // For dispatchOnPublish, call flush() before clear if you need errors.
     // In-flight handlers will still complete, but their errors are not retained.
     this.pendingHandlers.clear();
     this.handlerErrors = [];
@@ -446,13 +447,18 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   }
 
   private queueHandler(consumer: Consumer<T>, message: Message<T>): void {
-    const processing = Promise.resolve()
-      .then(() => consumer.handler(message))
-      .catch((error) => {
-        this.handlerErrors.push(
-          error instanceof Error ? error : new Error(String(error)),
-        );
-      });
+    let processing: Promise<void>;
+    try {
+      processing = Promise.resolve(consumer.handler(message));
+    } catch (error) {
+      processing = Promise.reject(error);
+    }
+
+    processing = processing.catch((error) => {
+      this.handlerErrors.push(
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    });
 
     this.pendingHandlers.add(processing);
     processing.finally(() => {
