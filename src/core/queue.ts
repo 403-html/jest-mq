@@ -149,6 +149,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     this.messageCount = 0;
     this.consumerCount = 0;
     this.nextConsumerIndex.clear();
+    // Clear tracking without cancelling in-flight handler execution.
     this.pendingHandlers.clear();
     this.handlerErrors = [];
   }
@@ -445,12 +446,12 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
         this.handlerErrors.push(
           error instanceof Error ? error : new Error(String(error)),
         );
-      })
-      .finally(() => {
-        this.pendingHandlers.delete(processing);
       });
 
     this.pendingHandlers.add(processing);
+    processing.finally(() => {
+      this.pendingHandlers.delete(processing);
+    });
   }
 
   private createConsumer(

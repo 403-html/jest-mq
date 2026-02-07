@@ -371,7 +371,7 @@ describe("MessageQueue", () => {
       legacyQueue.subscribe("legacy", handler);
       legacyQueue.publish({ type: "legacy", payload: "test" });
 
-      await new Promise((resolve) => setImmediate(resolve));
+      await legacyQueue.flush();
       expect(handler).toHaveBeenCalledTimes(1);
     });
   });
