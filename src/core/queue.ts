@@ -152,7 +152,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     this.nextConsumerIndex.clear();
     // Clear tracking without cancelling in-flight handler execution.
     // For dispatchOnPublish, call flush() before clear if you need errors.
-    // In-flight handlers will still complete, but their errors are not retained.
+    // In-flight handlers will still complete, but their errors are discarded.
     this.pendingHandlers.clear();
     this.handlerErrors = [];
   }
@@ -293,6 +293,11 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
             errors,
             "One or more message handlers failed",
           );
+        }
+        if (errors.length > 1) {
+          errors[0].message = `${errors[0].message} (and ${
+            errors.length - 1
+          } more errors)`;
         }
         throw errors[0];
       }
@@ -447,14 +452,9 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   }
 
   private queueHandler(consumer: Consumer<T>, message: Message<T>): void {
-    let processing: Promise<void>;
-    try {
-      processing = Promise.resolve(consumer.handler(message));
-    } catch (error) {
-      processing = Promise.reject(error);
-    }
-
-    processing = processing.catch((error) => {
+    const processing = (async () => {
+      await consumer.handler(message);
+    })().catch((error) => {
       this.handlerErrors.push(
         error instanceof Error ? error : new Error(String(error)),
       );
