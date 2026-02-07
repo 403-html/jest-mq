@@ -85,6 +85,9 @@ By default, `publish()` still dispatches handlers (legacy behavior). For
 deterministic tests, disable that with `dispatchOnPublish: false` and call
 `flush()` (or `drain()`) to deliver messages.
 
+If `dispatchOnPublish` is enabled (default), call `flush()` before `clear()`
+to avoid dropping in-flight handler errors.
+
 ```ts
 const queue = new MessageQueue("jobs", {
   deliveryMode: "competing",
@@ -113,9 +116,6 @@ Ready-state helpers are available for assertions:
 
 - `peekReady()` / `peekAllReady()`
 - `readyCount()` / `inFlightCount()` / `ackedCount()`
-
-If `dispatchOnPublish` is enabled (default), call `flush()` before `clear()`
-to avoid dropping in-flight handler errors.
 
 ## Queue snapshot performance
 

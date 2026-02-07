@@ -453,6 +453,9 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   }
 
   private queueHandler(consumer: Consumer<T>, message: Message<T>): void {
+    if (!this.dispatchOnPublish) {
+      return;
+    }
     const pendingHandlers =
       this.pendingHandlers ?? (this.pendingHandlers = new Set());
     const handlerErrors = this.handlerErrors ?? (this.handlerErrors = []);
