@@ -150,7 +150,8 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     this.consumerCount = 0;
     this.nextConsumerIndex.clear();
     // Clear tracking without cancelling in-flight handler execution.
-    // Call flush() first if you need to wait; results/errors after clear are not tracked.
+    // Flush no longer waits for in-flight handlers after clear; their errors may
+    // still surface if they complete before the next flush.
     this.pendingHandlers.clear();
     this.handlerErrors = [];
   }
@@ -280,9 +281,8 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
 
   async flush(options: FlushOptions = {}): Promise<void> {
     if (this.dispatchOnPublish) {
-      while (this.pendingHandlers.size > 0) {
-        await Promise.all(Array.from(this.pendingHandlers));
-      }
+      const pendingHandlers = Array.from(this.pendingHandlers);
+      await Promise.all(pendingHandlers);
       if (this.handlerErrors.length > 0) {
         const errors = [...this.handlerErrors];
         this.handlerErrors = [];
