@@ -8,9 +8,15 @@ export const toBeInQueue = function (
 ) {
   const queue = received.getQueue(false);
   const messageIsInQueue = queue.sentMessages.some((message) => {
+    const rest = (({
+      id: _id,
+      attempts: _attempts,
+      redelivered: _redelivered,
+      ...remaining
+    }) => remaining)(message);
     return this.equals(
       // Exclude id from comparison, it's provided by the queue
-      { ...message, id: undefined },
+      rest,
       expectedMessage,
     );
   });

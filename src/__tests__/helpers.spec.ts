@@ -15,6 +15,8 @@ describe("expectMessage", () => {
       type: messageType,
       payload: "testPayload",
       id: 0,
+      attempts: 0,
+      redelivered: false,
     };
 
     jest.spyOn(queue, "receiveMessage").mockImplementation((type) => {
@@ -34,6 +36,8 @@ describe("expectMessage", () => {
       type: messageType,
       payload: "testPayload",
       id: 0,
+      attempts: 0,
+      redelivered: false,
     };
 
     jest.spyOn(queue, "receiveMessage").mockReturnValueOnce(undefined);
@@ -63,6 +67,8 @@ describe("expectMessage", () => {
       type: messageType,
       payload: "testPayload",
       id: 0,
+      attempts: 0,
+      redelivered: false,
     };
 
     jest.spyOn(queue, "receiveMessage").mockImplementation((type) => {

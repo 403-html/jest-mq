@@ -47,7 +47,7 @@ describe("MessageQueue", () => {
     it("should publish a message", () => {
       const id = queue.publish({ type: "test", payload: "test" });
       expect(id).toBe(0);
-      expect(queue.getQueue().sentMessages).toHaveLength(1);
+      expect(queue.readyCount()).toBe(1);
     });
   });
 
@@ -56,10 +56,11 @@ describe("MessageQueue", () => {
       queue.publish({ type: "test", payload: "test" });
       const message = queue.receiveMessage("test", false);
 
-      expect(queue.getQueue().sentMessages).toHaveLength(1);
+      expect(queue.readyCount()).toBe(0);
+      expect(queue.inFlightCount()).toBe(1);
       queue.ack(message!);
-      expect(queue.getQueue().sentMessages).toHaveLength(0);
-      expect(queue.getQueue().receivedMessages).toHaveLength(1);
+      expect(queue.inFlightCount()).toBe(0);
+      expect(queue.ackedCount()).toBe(1);
     });
 
     it("should ignore ack when message is not in sent queue", () => {
@@ -67,12 +68,12 @@ describe("MessageQueue", () => {
       const message = queue.receiveMessage("test", false);
       queue.ack(message!);
 
-      expect(queue.getQueue().sentMessages).toHaveLength(0);
-      expect(queue.getQueue().receivedMessages).toHaveLength(1);
+      expect(queue.readyCount()).toBe(0);
+      expect(queue.ackedCount()).toBe(1);
 
       queue.ack(message!);
-      expect(queue.getQueue().sentMessages).toHaveLength(0);
-      expect(queue.getQueue().receivedMessages).toHaveLength(1);
+      expect(queue.readyCount()).toBe(0);
+      expect(queue.ackedCount()).toBe(1);
     });
   });
 
@@ -84,9 +85,16 @@ describe("MessageQueue", () => {
 
       const receivedMessage1 = queue.receiveMessage();
 
-      expect(receivedMessage1).toEqual({ ...message1, id: expect.any(Number) });
+      expect(receivedMessage1).toEqual({
+        ...message1,
+        id: expect.any(Number),
+        type: undefined,
+        attempts: 0,
+        redelivered: false,
+      });
 
-      expect(queue.getQueue().sentMessages).toHaveLength(0);
+      expect(queue.readyCount()).toBe(0);
+      expect(queue.ackedCount()).toBe(1);
     });
 
     it("should return undefined if no messages are available", () => {
@@ -96,8 +104,8 @@ describe("MessageQueue", () => {
 
     it("should not mutate received messages when queue is empty", () => {
       queue.receiveMessage();
-      expect(queue.getQueue().receivedMessages).toHaveLength(0);
-      expect(queue.getQueue().sentMessages).toHaveLength(0);
+      expect(queue.ackedCount()).toBe(0);
+      expect(queue.readyCount()).toBe(0);
     });
 
     it("should return undefined if no matching messages are available", () => {
@@ -111,11 +119,56 @@ describe("MessageQueue", () => {
       queue.publish(message);
       const receivedMessage = queue.receiveMessage(message.type);
 
-      expect(receivedMessage).toEqual({ ...message, id: expect.any(Number) });
+      expect(receivedMessage).toEqual({
+        ...message,
+        id: expect.any(Number),
+        attempts: 0,
+        redelivered: false,
+      });
+    });
+  });
+
+  describe("helpers", () => {
+    it("should peek ready messages and counts", () => {
+      queue.publish({ type: "peek", payload: "first" });
+      queue.publish({ type: "peek", payload: "second" });
+
+      expect(queue.readyCount()).toBe(2);
+      expect(queue.peekReady("peek")?.payload).toBe("first");
+      expect(queue.peekAllReady("peek")).toHaveLength(2);
+    });
+
+    it("should wait for a predicate to become true", async () => {
+      const waitPromise = queue.waitFor(
+        () => queue.readyCount() === 1,
+        { timeoutMs: 100 },
+      );
+
+      queue.publish({ type: "ready", payload: "one" });
+
+      await expect(waitPromise).resolves.toBeUndefined();
+    });
+
+    it("should time out when predicate stays false", async () => {
+      await expect(
+        queue.waitFor(() => false, { timeoutMs: 20 }),
+      ).rejects.toThrow("Timeout waiting for condition");
     });
   });
 
   describe("subscribe", () => {
+    it("should not run handlers until flush", async () => {
+      const handler = jest.fn();
+      queue.subscribe("orderCreated", handler);
+
+      queue.publish({ type: "orderCreated", orderId: 123 });
+
+      expect(handler).not.toHaveBeenCalled();
+
+      await queue.flush();
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+
     it("should subscribe to a message type", async () => {
       const handler = jest.fn();
       queue.subscribe("orderCreated", handler);
@@ -128,8 +181,22 @@ describe("MessageQueue", () => {
       await queue.flush();
       expect(handler).toHaveBeenCalledTimes(2);
       expect(handler.mock.calls).toEqual([
-        [{ ...firstMessage, id: 0 }],
-        [{ ...secondMessage, id: 1 }],
+        [
+          {
+            ...firstMessage,
+            id: 0,
+            attempts: 0,
+            redelivered: false,
+          },
+        ],
+        [
+          {
+            ...secondMessage,
+            id: 1,
+            attempts: 0,
+            redelivered: false,
+          },
+        ],
       ]);
     });
 
@@ -140,12 +207,18 @@ describe("MessageQueue", () => {
       const firstMessage = { type: "orderCreated", orderId: 123 };
       const secondMessage = { type: "orderCreated", orderId: 456 };
       queue.publish(firstMessage);
+      await queue.flush();
       unsubscribe();
       queue.publish(secondMessage);
-
       await queue.flush();
+
       expect(handler).toHaveBeenCalledTimes(1);
-      expect(handler.mock.calls[0][0]).toEqual({ ...firstMessage, id: 0 });
+      expect(handler.mock.calls[0][0]).toEqual({
+        ...firstMessage,
+        id: 0,
+        attempts: 0,
+        redelivered: false,
+      });
     });
 
     it("should process handlers for specific message types", async () => {
@@ -161,10 +234,20 @@ describe("MessageQueue", () => {
       await queue.flush();
 
       expect(handler1).toHaveBeenCalledWith(
-        expect.objectContaining({ ...message, id: expect.any(Number) }),
+        expect.objectContaining({
+          ...message,
+          id: expect.any(Number),
+          attempts: 0,
+          redelivered: false,
+        }),
       );
       expect(handler2).toHaveBeenCalledWith(
-        expect.objectContaining({ ...message, id: expect.any(Number) }),
+        expect.objectContaining({
+          ...message,
+          id: expect.any(Number),
+          attempts: 0,
+          redelivered: false,
+        }),
       );
     });
 
@@ -180,6 +263,8 @@ describe("MessageQueue", () => {
       expect(defaultHandler).toHaveBeenCalledWith({
         ...message,
         id: expect.any(Number),
+        attempts: 0,
+        redelivered: false,
       });
     });
 
@@ -205,12 +290,13 @@ describe("MessageQueue", () => {
       expect(asyncHandler).toHaveBeenCalled();
     });
 
-    it("should not call handlers for other message types", () => {
+    it("should not call handlers for other message types", async () => {
       const handler = jest.fn();
       queue.subscribe("orderCreated", handler);
 
       queue.publish({ type: "paymentProcessed" });
 
+      await queue.flush();
       expect(handler).not.toHaveBeenCalled();
     });
 
@@ -221,10 +307,9 @@ describe("MessageQueue", () => {
       const message = { type: "orderCreated", orderId: 123 };
       queue.publish(message);
 
+      await queue.flush();
       unsubscribe();
-
       queue.publish(message);
-
       await queue.flush();
 
       expect(handler).toHaveBeenCalledTimes(1);
@@ -237,10 +322,9 @@ describe("MessageQueue", () => {
       const message = { type: "anyType", orderId: 123 };
       queue.publish(message);
 
+      await queue.flush();
       unsubscribe();
-
       queue.publish(message);
-
       await queue.flush();
 
       expect(handler).toHaveBeenCalledTimes(1);
@@ -256,9 +340,9 @@ describe("MessageQueue", () => {
       const message = { type: "orderCreated", orderId: 123 };
       queue.publish(message);
 
+      await queue.flush();
       unsubscribe1();
       queue.publish(message);
-
       await queue.flush();
 
       expect(handler1).toHaveBeenCalledTimes(1);
@@ -276,6 +360,121 @@ describe("MessageQueue", () => {
       queue.publish(message);
 
       expect(handler).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("delivery mode", () => {
+    it("should deliver to one handler in competing mode", async () => {
+      queue = new MessageQueue("test", { deliveryMode: "competing" });
+      const handler1 = jest.fn();
+      const handler2 = jest.fn();
+
+      queue.subscribe("work", handler1);
+      queue.subscribe("work", handler2);
+
+      queue.publish({ type: "work", payload: "first" });
+      queue.publish({ type: "work", payload: "second" });
+
+      await queue.flush();
+
+      expect(handler1).toHaveBeenCalledTimes(1);
+      expect(handler2).toHaveBeenCalledTimes(1);
+      expect(handler1.mock.calls[0][0].payload).toBe("first");
+      expect(handler2.mock.calls[0][0].payload).toBe("second");
+    });
+  });
+
+  describe("consume", () => {
+    it("should leave messages in-flight until acked", async () => {
+      const handled: Array<{ id: number }> = [];
+      const consumer = queue.consume(
+        "work",
+        (message) => {
+          handled.push(message);
+        },
+        { autoAck: false, prefetch: 1 },
+      );
+
+      queue.publish({ type: "work", payload: "job" });
+      await queue.flush();
+
+      expect(queue.readyCount()).toBe(0);
+      expect(queue.inFlightCount()).toBe(1);
+      expect(consumer.stats().inFlight).toBe(1);
+
+      queue.ack(handled[0]);
+
+      expect(queue.inFlightCount()).toBe(0);
+      expect(queue.ackedCount()).toBe(1);
+      expect(consumer.stats().acked).toBe(1);
+    });
+
+    it("should requeue messages on nack with attempts", async () => {
+      let handled: { attempts: number; redelivered: boolean } | undefined;
+      queue.consume(
+        "retry",
+        (message) => {
+          handled = message;
+        },
+        { autoAck: false, prefetch: 1 },
+      );
+
+      queue.publish({ type: "retry", payload: "job" });
+      await queue.flush();
+
+      queue.nack(handled!);
+
+      expect(queue.readyCount()).toBe(1);
+      const peeked = queue.peekReady("retry");
+      expect(peeked).toMatchObject({ attempts: 1, redelivered: true });
+    });
+
+    it("should requeue in-flight messages when consumer stops", async () => {
+      const consumer = queue.consume(
+        "stop",
+        () => undefined,
+        { autoAck: false, prefetch: 1 },
+      );
+
+      queue.publish({ type: "stop", payload: "job" });
+      await queue.flush();
+
+      consumer.stop();
+
+      expect(queue.inFlightCount()).toBe(0);
+      expect(queue.readyCount()).toBe(1);
+      expect(queue.peekReady("stop")).toMatchObject({
+        attempts: 1,
+        redelivered: true,
+      });
+    });
+
+    it("should respect prefetch limits", async () => {
+      let resolveFirst: () => void;
+      const firstGate = new Promise<void>((resolve) => {
+        resolveFirst = resolve;
+      });
+
+      const handler = jest.fn((message: { payload?: string }) => {
+        if (message.payload === "first") {
+          return firstGate;
+        }
+        return undefined;
+      });
+
+      queue.consume("prefetch", handler, { prefetch: 1 });
+      queue.publish({ type: "prefetch", payload: "first" });
+      queue.publish({ type: "prefetch", payload: "second" });
+
+      const flushPromise = queue.flush();
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(handler).toHaveBeenCalledTimes(1);
+
+      resolveFirst!();
+      await flushPromise;
+
+      expect(handler).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -314,6 +513,41 @@ describe("MessageQueue", () => {
       );
       expect(failingHandler).toHaveBeenCalledTimes(1);
       expect(successHandler).toHaveBeenCalledTimes(1);
+    });
+
+    it("should stop dispatching on first error when failFast is true", async () => {
+      const handler = jest.fn((message: { payload?: string }) => {
+        if (message.payload === "fail") {
+          throw new Error("handler failed");
+        }
+      });
+
+      queue.subscribe("failFast", handler);
+      queue.publish({ type: "failFast", payload: "fail" });
+      queue.publish({ type: "failFast", payload: "later" });
+
+      await expect(queue.flush({ failFast: true })).rejects.toThrow(
+        "One or more message handlers failed",
+      );
+      expect(queue.readyCount()).toBe(1);
+    });
+
+    it("should throw the first error when captureErrors is false", async () => {
+      const handler = jest.fn(() => {
+        throw new Error("handler failed");
+      });
+
+      queue.subscribe("capture", handler);
+      queue.publish({ type: "capture" });
+
+      try {
+        await queue.flush({ captureErrors: false });
+        throw new Error("Expected flush to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect(error).not.toBeInstanceOf(AggregateError);
+        expect((error as Error).message).toBe("handler failed");
+      }
     });
 
     it("should wait for concurrent handlers to finish before resolving", async () => {

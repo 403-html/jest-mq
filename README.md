@@ -65,7 +65,7 @@ describe("orders", () => {
     expect(queue).toBeInQueue({ type: "order.created", orderId: "order-123" });
     expect(queue).toBeInQueue({ type: "order.created", orderId: "order-456" });
 
-    const peek = queue.receiveMessage("order.created", false);
+    const peek = queue.peekReady("order.created");
     expect(peek?.orderId).toBe("order-123");
     expect(queue).toBeInQueue({ type: "order.created", orderId: "order-123" });
     expect(queue).toBeInQueue({ type: "order.created", orderId: "order-456" });
@@ -78,6 +78,32 @@ describe("orders", () => {
   });
 });
 ```
+
+## Deterministic delivery helpers
+
+`publish()` only enqueues messages. Call `flush()` (or `drain()`) to deliver
+messages deterministically during tests.
+
+```ts
+const queue = new MessageQueue("jobs", { deliveryMode: "competing" });
+const consumer = queue.consume(
+  "job",
+  async (message) => {
+    // handle job
+    queue.ack(message);
+  },
+  { autoAck: false, prefetch: 1 },
+);
+
+queue.publish({ type: "job", payload: "example" });
+await queue.flush();
+consumer.stats();
+```
+
+Ready-state helpers are available for assertions:
+
+- `peekReady()` / `peekAllReady()`
+- `readyCount()` / `inFlightCount()` / `ackedCount()`
 
 ## Queue snapshot performance
 

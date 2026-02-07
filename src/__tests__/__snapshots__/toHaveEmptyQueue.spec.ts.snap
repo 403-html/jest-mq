@@ -4,5 +4,5 @@ exports[`toHaveEmptyQueue should fail if queue is not empty 1`] = `
 "expect(received).toHaveEmptyQueue()
       
       Expected queue to be empty, but it contains:
-        [{"id": 0, "payload": "test", "type": "test"}]"
+        [{"attempts": 0, "id": 0, "payload": "test", "redelivered": false, "type": "test"}]"
 `;

@@ -25,7 +25,7 @@ describe("readme example", () => {
     expect(queue).toBeInQueue({ type: "order.created", orderId: "order-123" });
     expect(queue).toBeInQueue({ type: "order.created", orderId: "order-456" });
 
-    const peek = queue.receiveMessage("order.created", false);
+    const peek = queue.peekReady("order.created");
     expect(peek?.orderId).toBe("order-123");
     expect(queue).toBeInQueue({ type: "order.created", orderId: "order-123" });
     expect(queue).toBeInQueue({ type: "order.created", orderId: "order-456" });
