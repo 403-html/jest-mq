@@ -1,6 +1,10 @@
 export type MessagePayload = Record<string, unknown> & {
   type?: string;
 };
+/**
+ * Queue messages normalize `type` and `id` on the envelope, overriding any
+ * payload values for those fields.
+ */
 export type Message<T extends MessagePayload = MessagePayload> = Omit<
   T,
   "type" | "id"
