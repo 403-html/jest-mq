@@ -1,5 +1,5 @@
 import { MessageQueue } from "../core/queue";
-import { matcherHint, printReceived, printExpected } from "jest-matcher-utils";
+import { matcherHint, printReceived } from "jest-matcher-utils";
 
 export const toHaveEmptyQueue = function (
   this: jest.MatcherContext,
