@@ -95,7 +95,6 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   private nextConsumerIndex = new Map<string | undefined, number>();
   private pendingHandlers: Set<Promise<void>> = new Set();
   private handlerErrors: Error[] = [];
-  private legacyFlushPromise?: Promise<void>;
 
   constructor(
     public name: string,
@@ -281,29 +280,20 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
 
   async flush(options: FlushOptions = {}): Promise<void> {
     if (this.dispatchOnPublish) {
-      if (this.legacyFlushPromise) {
-        await this.legacyFlushPromise;
-        return;
-      }
-      this.legacyFlushPromise = (async () => {
+      while (this.pendingHandlers.size > 0) {
         await Promise.all(Array.from(this.pendingHandlers));
-        if (this.handlerErrors.length > 0) {
-          const errors = [...this.handlerErrors];
-          this.handlerErrors = [];
-          const captureErrors = options.captureErrors ?? this.captureErrors;
-          if (captureErrors) {
-            throw new AggregateError(
-              errors,
-              "One or more message handlers failed",
-            );
-          }
-          throw errors[0];
+      }
+      if (this.handlerErrors.length > 0) {
+        const errors = [...this.handlerErrors];
+        this.handlerErrors = [];
+        const captureErrors = options.captureErrors ?? this.captureErrors;
+        if (captureErrors) {
+          throw new AggregateError(
+            errors,
+            "One or more message handlers failed",
+          );
         }
-      })();
-      try {
-        await this.legacyFlushPromise;
-      } finally {
-        this.legacyFlushPromise = undefined;
+        throw errors[0];
       }
       return;
     }
