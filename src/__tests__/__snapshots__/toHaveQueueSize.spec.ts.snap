@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+// Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`toHaveQueueSize should fail if queue size does not match 1`] = `
 "expect(received).toHaveQueueSize(expectedCount)
@@ -8,5 +8,5 @@ exports[`toHaveQueueSize should fail if queue size does not match 1`] = `
       Received:
         1
       Queue contents:
-        [{\"id\": 0, \"payload\": \"test\", \"type\": \"test\"}]"
+        [{"id": 0, "payload": "test", "type": "test"}]"
 `;
