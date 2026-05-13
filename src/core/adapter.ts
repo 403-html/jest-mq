@@ -1,4 +1,4 @@
-export type QueueMessage<T = any> = { type?: string } & T;
+export type QueueMessage<T = unknown> = { type?: string } & T;
 
 /**
  * Interface for production broker adapters. `MessageQueue` satisfies this
@@ -7,7 +7,7 @@ export type QueueMessage<T = any> = { type?: string } & T;
  * Usage: type your app's broker dependency against `MessageQueueAdapter<T>`,
  * inject a real adapter in production and a `MessageQueue<T>` in tests.
  */
-export interface MessageQueueAdapter<T = any> {
+export interface MessageQueueAdapter<T = unknown> {
   name: string;
   connect?(): Promise<void> | void;
   disconnect?(): Promise<void> | void;

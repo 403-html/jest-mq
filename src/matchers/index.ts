@@ -12,11 +12,11 @@ declare global {
     interface Matchers<R> {
       toBeInQueue(expectedMessage: MessagePayload): R;
       toHaveEmptyQueue(): R;
-      toHaveBeenAcked(expectedMessage: any): R;
+      toHaveBeenAcked(expectedMessage: MessagePayload): R;
       toHaveOnlyTypes(expectedTypes: string[]): R;
-      toHavePublishedTimes(expectedMessage: any, expectedCount: number): R;
+      toHavePublishedTimes(expectedMessage: MessagePayload, expectedCount: number): R;
       toHaveQueueSize(expectedCount: number): R;
-      toHaveReceived(expectedMessage: any): R;
+      toHaveReceived(expectedMessage: MessagePayload): R;
     }
   }
 }

@@ -3,7 +3,7 @@ import { matcherHint, printReceived, printExpected } from "jest-matcher-utils";
 
 export const toHaveQueueSize = function (
   this: jest.MatcherContext,
-  received: MessageQueue<any>,
+  received: MessageQueue,
   expectedCount: number,
 ) {
   const queue = received.getQueue();
