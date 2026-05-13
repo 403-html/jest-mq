@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`toHaveOnlyTypes should fail when unexpected types exist 1`] = `
+"expect(received).toHaveOnlyTypes(expectedTypes)
+      
+      Expected only message types:
+        ["alpha"]
+      Received types:
+        ["alpha", "gamma"]"
+`;

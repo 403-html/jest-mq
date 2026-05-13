@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`toHaveReceived should fail if message was not received 1`] = `
+"expect(received).toHaveReceived(expectedMessage)
+      
+      Expected message to be received:
+        {"payload": "test", "type": "test"}
+      Received messages:
+        []"
+`;
