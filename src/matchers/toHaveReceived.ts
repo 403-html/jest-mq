@@ -8,16 +8,17 @@ export const toHaveReceived = function (
 ) {
   const queue = received.getQueue();
   const wasReceived = queue.receivedMessages.some((message) =>
-    this.equals(
-      { ...message, id: undefined },
-      expectedMessage,
-    ),
+    this.equals({ ...message, id: undefined }, expectedMessage),
   );
 
   return {
     pass: wasReceived,
     message: () => {
-      const hint = matcherHint(".toHaveReceived", "received", "expectedMessage");
+      const hint = matcherHint(
+        ".toHaveReceived",
+        "received",
+        "expectedMessage",
+      );
       const expectedStr = printReceived(expectedMessage);
       const receivedStr = printExpected(queue.receivedMessages);
       return `${hint}

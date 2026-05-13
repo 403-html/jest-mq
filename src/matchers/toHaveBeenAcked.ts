@@ -8,16 +8,17 @@ export const toHaveBeenAcked = function (
 ) {
   const queue = received.getQueue();
   const wasAcked = queue.ackedMessages.some((message) =>
-    this.equals(
-      { ...message, id: undefined },
-      expectedMessage,
-    ),
+    this.equals({ ...message, id: undefined }, expectedMessage),
   );
 
   return {
     pass: wasAcked,
     message: () => {
-      const hint = matcherHint(".toHaveBeenAcked", "received", "expectedMessage");
+      const hint = matcherHint(
+        ".toHaveBeenAcked",
+        "received",
+        "expectedMessage",
+      );
       const expectedStr = printReceived(expectedMessage);
       const receivedStr = printExpected(queue.ackedMessages);
       return `${hint}

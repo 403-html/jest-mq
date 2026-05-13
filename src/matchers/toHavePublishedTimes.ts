@@ -8,15 +8,9 @@ export const toHavePublishedTimes = function (
   expectedCount: number,
 ) {
   const queue = received.getQueue();
-  const allMessages = [
-    ...queue.sentMessages,
-    ...queue.receivedMessages,
-  ];
+  const allMessages = [...queue.sentMessages, ...queue.receivedMessages];
   const matchingCount = allMessages.filter((message) =>
-    this.equals(
-      { ...message, id: undefined },
-      expectedMessage,
-    ),
+    this.equals({ ...message, id: undefined }, expectedMessage),
   ).length;
   const pass = matchingCount === expectedCount;
 

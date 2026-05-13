@@ -7,10 +7,7 @@ export const toHaveOnlyTypes = function (
   expectedTypes: string[],
 ) {
   const queue = received.getQueue();
-  const allMessages = [
-    ...queue.sentMessages,
-    ...queue.receivedMessages,
-  ];
+  const allMessages = [...queue.sentMessages, ...queue.receivedMessages];
   const unexpectedTypes = allMessages
     .map((message) => message.type)
     .filter((type) => !expectedTypes.includes(type ?? ""));
