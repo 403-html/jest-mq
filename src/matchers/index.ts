@@ -14,7 +14,10 @@ declare global {
       toHaveEmptyQueue(): R;
       toHaveBeenAcked(expectedMessage: MessagePayload): R;
       toHaveOnlyTypes(expectedTypes: string[]): R;
-      toHavePublishedTimes(expectedMessage: MessagePayload, expectedCount: number): R;
+      toHavePublishedTimes(
+        expectedMessage: MessagePayload,
+        expectedCount: number,
+      ): R;
       toHaveQueueSize(expectedCount: number): R;
       toHaveReceived(expectedMessage: MessagePayload): R;
     }
