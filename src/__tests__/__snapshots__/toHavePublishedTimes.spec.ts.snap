@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`toHavePublishedTimes should fail when message count does not match 1`] = `
+"expect(received).toHavePublishedTimes(expectedMessage, expectedCount)
+      
+      Expected message published times:
+        {\"message\": {\"payload\": \"test\", \"type\": \"test\"}, \"times\": 2}
+      Received:
+        {\"message\": {\"payload\": \"test\", \"type\": \"test\"}, \"times\": 1}
+      All messages:
+        [{\"id\": 0, \"payload\": \"test\", \"type\": \"test\"}]"
+`;
