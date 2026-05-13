@@ -6,6 +6,7 @@ export type MessageHandler<T = any> = (
 export class MessageQueue<T = any> {
   private sentMessages: Message<T>[] = [];
   private receivedMessages: Message<T>[] = [];
+  private ackedMessages: Message<T>[] = [];
   private handlers: Map<string | undefined, MessageHandler<T>[]> = new Map();
   private messageCount: number = 0;
   private pendingHandlers: Set<Promise<void>> = new Set();
@@ -27,12 +28,14 @@ export class MessageQueue<T = any> {
     name: string;
     sentMessages: Message<T>[];
     receivedMessages: Message<T>[];
+    ackedMessages: Message<T>[];
     handlers: Map<string | undefined, MessageHandler<T>[]>;
   } {
     return {
       name: this.name,
       sentMessages: [...this.sentMessages],
       receivedMessages: [...this.receivedMessages],
+      ackedMessages: [...this.ackedMessages],
       handlers: new Map(this.handlers),
     };
   }
@@ -40,6 +43,7 @@ export class MessageQueue<T = any> {
   clear(): void {
     this.sentMessages = [];
     this.receivedMessages = [];
+    this.ackedMessages = [];
     this.handlers.clear();
     this.messageCount = 0;
     this.pendingHandlers.clear();
@@ -106,6 +110,11 @@ export class MessageQueue<T = any> {
     }
     const [ackedMessage] = this.sentMessages.splice(messageIndex, 1);
     this.receivedMessages.push(ackedMessage);
+    this.ackedMessages.push(ackedMessage);
+  }
+
+  peek(messageType?: string): Message<T> | undefined {
+    return this.receiveMessage(messageType, false);
   }
 
   subscribe(
