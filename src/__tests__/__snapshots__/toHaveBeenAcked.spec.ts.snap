@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`toHaveBeenAcked should fail if message was not acked 1`] = `
+"expect(received).toHaveBeenAcked(expectedMessage)
+
+      Expected message to be acked:
+        {"payload": "test", "type": "test"}
+      Acked messages:
+        []"
+`;
