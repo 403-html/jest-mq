@@ -1,4 +1,4 @@
-import { Message, MessageQueue } from "./queue";
+import { Message, MessageQueue, type MessagePayload } from "./queue";
 
 /**
  * Waits asynchronously for a specific type of message from the given message queue within a specified timeout period.
@@ -11,7 +11,7 @@ import { Message, MessageQueue } from "./queue";
  * @returns {Promise<Message<T>>} A promise that resolves with the received message if it arrives within the timeout period, or rejects with an error if the timeout is reached.
  * @throws {Error} If the timeout is reached before a message of the specified type is received.
  */
-export async function expectMessage<T = any>({
+export async function expectMessage<T extends MessagePayload = MessagePayload>({
   queue,
   messageType,
   timeout = 3000,

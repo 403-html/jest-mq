@@ -94,6 +94,12 @@ describe("MessageQueue", () => {
       expect(receivedMessage).toBeUndefined();
     });
 
+    it("should not mutate received messages when queue is empty", () => {
+      queue.receiveMessage();
+      expect(queue.getQueue().receivedMessages).toHaveLength(0);
+      expect(queue.getQueue().sentMessages).toHaveLength(0);
+    });
+
     it("should return undefined if no matching messages are available", () => {
       queue.publish({ type: "otherType", payload: "test" });
       const receivedMessage = queue.receiveMessage("nonExistentType");
@@ -175,6 +181,16 @@ describe("MessageQueue", () => {
         ...message,
         id: expect.any(Number),
       });
+    });
+
+    it("should only call default handlers once when type is undefined", async () => {
+      const defaultHandler = jest.fn();
+      queue.subscribe(undefined, defaultHandler);
+
+      queue.publish({ type: undefined, data: "no type" });
+
+      await queue.flush();
+      expect(defaultHandler).toHaveBeenCalledTimes(1);
     });
 
     it("should handle asynchronous handlers", async () => {

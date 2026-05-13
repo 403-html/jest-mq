@@ -1,9 +1,22 @@
-export type Message<T = any> = { type: string | undefined; id: number } & T;
-export type MessageHandler<T = any> = (
+export type MessagePayload = Record<string, unknown> & {
+  type?: string;
+};
+/**
+ * Queue messages normalize `type` and `id` on the envelope, overriding any
+ * payload values for those fields.
+ */
+export type Message<T extends MessagePayload = MessagePayload> = Omit<
+  T,
+  "type" | "id"
+> & {
+  type: string | undefined;
+  id: number;
+};
+export type MessageHandler<T extends MessagePayload = MessagePayload> = (
   message: Message<T>,
 ) => Promise<void> | void;
 
-export class MessageQueue<T = any> {
+export class MessageQueue<T extends MessagePayload = MessagePayload> {
   private sentMessages: Message<T>[] = [];
   private receivedMessages: Message<T>[] = [];
   private ackedMessages: Message<T>[] = [];
@@ -51,10 +64,12 @@ export class MessageQueue<T = any> {
   }
 
   private async processHandlers(messageWithId: Message<T>): Promise<void> {
-    const handlers = [
-      ...(this.handlers.get(messageWithId.type) || []),
-      ...(this.handlers.get(undefined) || []),
-    ];
+    const typedHandlers = this.handlers.get(messageWithId.type) || [];
+    const defaultHandlers =
+      messageWithId.type === undefined
+        ? []
+        : this.handlers.get(undefined) || [];
+    const handlers = [...typedHandlers, ...defaultHandlers];
 
     const processing = Promise.all(
       handlers.map((handler) =>
@@ -75,7 +90,7 @@ export class MessageQueue<T = any> {
   publish(message: T): number {
     const messageWithId: Message<T> = {
       ...message,
-      type: (message as any).type,
+      type: message.type,
       id: this.messageCount++,
     };
     this.sentMessages.push(messageWithId);
@@ -86,7 +101,9 @@ export class MessageQueue<T = any> {
   receiveMessage(messageType?: string, autoAck = true): Message<T> | undefined {
     const messageIndex = messageType
       ? this.sentMessages.findIndex((m) => m.type === messageType)
-      : 0;
+      : this.sentMessages.length > 0
+        ? 0
+        : -1;
     if (messageIndex === -1) {
       return undefined;
     }

@@ -5,11 +5,12 @@ import { toHaveOnlyTypes } from "./toHaveOnlyTypes";
 import { toHavePublishedTimes } from "./toHavePublishedTimes";
 import { toHaveQueueSize } from "./toHaveQueueSize";
 import { toHaveReceived } from "./toHaveReceived";
+import type { MessagePayload } from "../core/queue";
 
 declare global {
   namespace jest {
     interface Matchers<R> {
-      toBeInQueue(expectedMessage: any): R;
+      toBeInQueue(expectedMessage: MessagePayload): R;
       toHaveEmptyQueue(): R;
       toHaveBeenAcked(expectedMessage: any): R;
       toHaveOnlyTypes(expectedTypes: string[]): R;
