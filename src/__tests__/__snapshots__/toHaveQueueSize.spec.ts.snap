@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`toHaveQueueSize should fail if queue size does not match 1`] = `
 "expect(received).toHaveQueueSize(expectedCount)

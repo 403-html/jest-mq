@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`toHaveBeenAcked should fail if message was not acked 1`] = `
 "expect(received).toHaveBeenAcked(expectedMessage)
