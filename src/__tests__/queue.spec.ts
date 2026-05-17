@@ -279,6 +279,61 @@ describe("MessageQueue", () => {
     });
   });
 
+  describe("nack", () => {
+    it("should move a message to deadLetterMessages", () => {
+      queue.publish({ type: "test", payload: "test" });
+      const message = queue.peek("test")!;
+
+      queue.nack(message);
+
+      expect(queue.getQueue().sentMessages).toHaveLength(0);
+      expect(queue.getQueue().deadLetterMessages).toHaveLength(1);
+    });
+
+    it("should be a no-op when message is not in sentMessages", () => {
+      queue.publish({ type: "test", payload: "test" });
+      const message = queue.receiveMessage("test")!;
+
+      queue.nack(message);
+
+      expect(queue.getQueue().deadLetterMessages).toHaveLength(0);
+    });
+
+    it("should auto-nack on handler failure when autoDeadLetter is true", async () => {
+      const dlqQueue = new MessageQueue("dlq-test", { autoDeadLetter: true });
+      dlqQueue.subscribe("badMessage", () => {
+        throw new Error("processing failed");
+      });
+
+      dlqQueue.publish({ type: "badMessage" });
+
+      try {
+        await dlqQueue.flush();
+      } catch {
+        // expected
+      }
+
+      expect(dlqQueue.getQueue().deadLetterMessages).toHaveLength(1);
+      dlqQueue.clear();
+    });
+
+    it("should not auto-nack on handler failure by default", async () => {
+      queue.subscribe("badMessage", () => {
+        throw new Error("processing failed");
+      });
+
+      queue.publish({ type: "badMessage" });
+
+      try {
+        await queue.flush();
+      } catch {
+        // expected
+      }
+
+      expect(queue.getQueue().deadLetterMessages).toHaveLength(0);
+    });
+  });
+
   describe("flush", () => {
     it("should surface handler errors", async () => {
       const handler = jest.fn(() => {
