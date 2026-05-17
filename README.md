@@ -96,9 +96,39 @@ const queue = new MessageQueue<MyMessage>("queue-name");
 | `receiveMessage(type?, autoAck?)` | Dequeues the first matching message. `autoAck` defaults to `true`. |
 | `peek(type?)` | Reads the first matching message without consuming it (`autoAck = false`). |
 | `ack(message)` | Explicitly acknowledges a message received with `autoAck = false`. |
+| `nack(message)` | Moves a message from the main queue into the dead letter queue. |
 | `subscribe(type, handler)` | Registers a handler for a message type (or `undefined` for all types). Returns an unsubscribe function. |
 | `flush()` | Awaits all pending handler executions. Throws `AggregateError` if any handler threw. |
 | `clear()` | Resets all queue state. |
+
+#### Dead letter queue
+
+Pass `{ autoDeadLetter: true }` to automatically move a message to the DLQ when its handler throws:
+
+```ts
+const queue = new MessageQueue<MyMessage>("orders", { autoDeadLetter: true });
+
+queue.subscribe("order.created", async (message) => {
+  if (!message.orderId) throw new Error("invalid message");
+  // ...
+});
+
+queue.publish({ type: "order.created" }); // no orderId — handler throws
+
+try {
+  await queue.flush();
+} catch { /* AggregateError still thrown */ }
+
+expect(queue).toBeInDeadLetterQueue({ type: "order.created" });
+```
+
+You can also dead-letter messages manually:
+
+```ts
+const msg = queue.peek("order.created")!;
+queue.nack(msg);
+expect(queue).toHaveDeadLetterQueueSize(1);
+```
 
 ### `MessageQueueAdapter<T>`
 
@@ -197,9 +227,26 @@ Asserts a specific message was published exactly `n` times across all sent and r
 expect(queue).toHavePublishedTimes({ type: "order.created", orderId: "x" }, 2);
 ```
 
+### `toBeInDeadLetterQueue(expectedMessage)`
+
+Asserts a message is in the dead letter queue (dead-lettered via `nack()` or `autoDeadLetter`).
+
+```ts
+queue.nack(queue.peek("order.created")!);
+expect(queue).toBeInDeadLetterQueue({ type: "order.created", orderId: "order-123" });
+```
+
+### `toHaveDeadLetterQueueSize(n)`
+
+Asserts the number of messages in the dead letter queue.
+
+```ts
+expect(queue).toHaveDeadLetterQueueSize(1);
+```
+
 ## Scope and non-goals
 
 - This is a deterministic test double plus matchers, not a full MQ emulator.
 - `MessageQueue` models publish/subscribe and handler flushing.
-- TODO: retries, DLQs, ordering guarantees, and other broker behaviors.
+- TODO: retries, ordering guarantees, and other broker behaviors.
 - This is meant for unit tests; integration tests should run against a real broker.
