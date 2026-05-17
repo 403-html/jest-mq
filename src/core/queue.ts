@@ -20,12 +20,16 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
   private sentMessages: Message<T>[] = [];
   private receivedMessages: Message<T>[] = [];
   private ackedMessages: Message<T>[] = [];
+  private deadLetterMessages: Message<T>[] = [];
   private handlers: Map<string | undefined, MessageHandler<T>[]> = new Map();
   private messageCount: number = 0;
   private pendingHandlers: Set<Promise<void>> = new Set();
   private handlerErrors: Error[] = [];
 
-  constructor(public name: string) {
+  constructor(
+    public name: string,
+    private options: { autoDeadLetter?: boolean } = {},
+  ) {
     if (!name) {
       throw new Error("Queue name is required");
     }
@@ -42,6 +46,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     sentMessages: Message<T>[];
     receivedMessages: Message<T>[];
     ackedMessages: Message<T>[];
+    deadLetterMessages: Message<T>[];
     handlers: Map<string | undefined, MessageHandler<T>[]>;
   } {
     return {
@@ -49,6 +54,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
       sentMessages: [...this.sentMessages],
       receivedMessages: [...this.receivedMessages],
       ackedMessages: [...this.ackedMessages],
+      deadLetterMessages: [...this.deadLetterMessages],
       handlers: new Map(this.handlers),
     };
   }
@@ -57,6 +63,7 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     this.sentMessages = [];
     this.receivedMessages = [];
     this.ackedMessages = [];
+    this.deadLetterMessages = [];
     this.handlers.clear();
     this.messageCount = 0;
     this.pendingHandlers.clear();
@@ -79,6 +86,9 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
             this.handlerErrors.push(
               error instanceof Error ? error : new Error(String(error)),
             );
+            if (this.options.autoDeadLetter) {
+              this.nack(messageWithId);
+            }
           }),
       ),
     ).then(() => undefined);
@@ -128,6 +138,13 @@ export class MessageQueue<T extends MessagePayload = MessagePayload> {
     const [ackedMessage] = this.sentMessages.splice(messageIndex, 1);
     this.receivedMessages.push(ackedMessage);
     this.ackedMessages.push(ackedMessage);
+  }
+
+  nack(message: Message<T>): void {
+    const idx = this.sentMessages.findIndex((m) => m.id === message.id);
+    if (idx === -1) return;
+    const [msg] = this.sentMessages.splice(idx, 1);
+    this.deadLetterMessages.push(msg);
   }
 
   peek(messageType?: string): Message<T> | undefined {

@@ -20,4 +20,5 @@ export interface MessageQueueAdapter<T = unknown> {
     messageType: string | undefined,
     handler: (message: T) => Promise<void> | void,
   ): () => void;
+  nack?(message: QueueMessage<T>): Promise<void> | void;
 }

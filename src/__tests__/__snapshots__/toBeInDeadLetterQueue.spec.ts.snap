@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`toBeInDeadLetterQueue should fail if message is not in dead letter queue 1`] = `
+"expect(received).toBeInDeadLetterQueue(expectedMessage)
+
+      Expected message to be in dead letter queue:
+        {"payload": "test", "type": "test"}
+      Received:
+        []"
+`;

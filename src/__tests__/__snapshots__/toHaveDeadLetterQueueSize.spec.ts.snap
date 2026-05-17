@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`toHaveDeadLetterQueueSize should fail if dead letter queue size does not match 1`] = `
+"expect(received).toHaveDeadLetterQueueSize(expectedCount)
+
+      Expected dead letter queue size:
+        2
+      Received:
+        1
+      Dead letter queue contents:
+        [{"id": 0, "payload": "test", "type": "test"}]"
+`;
